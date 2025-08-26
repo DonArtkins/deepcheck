@@ -47,14 +47,14 @@ DeepCheck is an advanced AI-powered deepfake detection system designed for media
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/deepcheck.git
+git clone https://github.com/DonArtkins/deepcheck.git
 cd deepcheck
 
 # Install dependencies
 npm install
 
 # Configure environment
-cp .env.example .env.local
+cp .env.example .env
 
 # Launch development server
 npm run dev

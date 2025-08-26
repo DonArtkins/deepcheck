@@ -16,17 +16,14 @@ Before contributing to DeepCheck, ensure your environment meets these specificat
 
 ```bash
 # Fork and clone the repository
-git clone https://github.com/your-username/deepcheck.git
+git clone https://github.com/DonArtkins/deepcheck.git
 cd deepcheck
 
 # Install dependencies
 npm install
 
 # Set up environment
-cp .env.example .env.local
-
-# Initialize development database
-npm run db:setup
+cp .env.example .env
 
 # Start development server
 npm run dev
@@ -35,10 +32,9 @@ npm run dev
 ### Development Environment Variables
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:3000/api
-DEEPCHECK_DEV_MODE=true
-NEURAL_NETWORK_MOCK=true
-DEBUG_LEVEL=verbose
+NEXT_PUBLIC_API_URL=https://api.deepcheck.ai
+DEEPCHECK_API_KEY=your_api_key_here
+NEURAL_NETWORK_ENDPOINT=https://nn.deepcheck.ai
 ```
 
 ## CODE STANDARDS
