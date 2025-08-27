@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -26,7 +26,35 @@ interface ResetFormData {
   confirmPassword: string;
 }
 
-export default function ResetPasswordPage() {
+// Loading component for Suspense fallback
+function LoadingSpinner() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-card flex items-center justify-center p-4">
+      <div className="w-full max-w-md relative z-10">
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Image
+              src="/logo.png"
+              alt="DeepCheck Icon"
+              width={48}
+              height={48}
+              className="w-10 h-10 sm:w-12 sm:h-12"
+            />
+            <span className="text-2xl font-mono font-bold">
+              DEEP<span className="text-primary">CHECK</span>
+            </span>
+          </div>
+          <div className="flex items-center justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main component that uses useSearchParams
+function ResetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { resetPassword, isAuthenticated } = useAuth();
@@ -487,5 +515,14 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main export with Suspense wrapper
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }
