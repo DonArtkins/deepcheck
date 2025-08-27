@@ -1,66 +1,86 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Menu, X, Shield, ChevronDown } from "lucide-react"
-import Link from "next/link"
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Menu, X, Shield } from "lucide-react";
+import Link from "next/link";
 
 export function Navigation() {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Close mobile menu when clicking a link
+  const handleLinkClick = () => {
+    setIsOpen(false);
+  };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        isScrolled
+          ? "bg-background/95 backdrop-blur-md border-b border-border shadow-lg"
+          : "bg-background/80 backdrop-blur-md border-b border-border"
+      }`}
+    >
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-14 sm:h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 font-mono font-bold text-xl">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Shield className="w-5 h-5 text-primary-foreground" />
+          <Link
+            href="/"
+            className="flex items-center gap-2 font-mono font-bold text-lg sm:text-xl transition-colors hover:text-primary"
+          >
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-primary rounded-lg flex items-center justify-center">
+              <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
             </div>
-            <p>DEEP<span className="text-primary">CHECK</span></p>
+            <span>
+              DEEP<span className="text-primary">CHECK</span>
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
-            <div className="flex items-center gap-6 font-mono text-sm">
-              <Link href="#features" className="hover:text-primary transition-colors">
+          <div className="hidden md:flex items-center gap-6 lg:gap-8">
+            <div className="flex items-center gap-4 lg:gap-6 font-mono text-sm">
+              <Link
+                href="#features"
+                className="hover:text-primary transition-colors duration-200 relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-primary after:transition-all hover:after:w-full"
+              >
                 FEATURES
               </Link>
-              <Link href="#technology" className="hover:text-primary transition-colors">
+              <Link
+                href="#technology"
+                className="hover:text-primary transition-colors duration-200 relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-primary after:transition-all hover:after:w-full"
+              >
                 TECHNOLOGY
               </Link>
-              <div className="relative group">
-                <button className="flex items-center gap-1 hover:text-primary transition-colors">
-                  SOLUTIONS
-                  <ChevronDown className="w-3 h-3" />
-                </button>
-                <div className="absolute top-full left-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                  <div className="p-2">
-                    <Link href="/enterprise" className="block px-3 py-2 text-sm hover:bg-accent rounded">
-                      Enterprise
-                    </Link>
-                    <Link href="/api-access" className="block px-3 py-2 text-sm hover:bg-accent rounded">
-                      API Access
-                    </Link>
-                    <Link href="/forensics" className="block px-3 py-2 text-sm hover:bg-accent rounded">
-                      Digital Forensics
-                    </Link>
-                  </div>
-                </div>
-              </div>
-              <Link href="#pricing" className="hover:text-primary transition-colors">
-                PRICING
+              <Link
+                href="#contact"
+                className="hover:text-primary transition-colors duration-200 relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-primary after:transition-all hover:after:w-full"
+              >
+                CONTACT
               </Link>
             </div>
 
             <div className="flex items-center gap-3">
               <Link href="/auth/login">
-                <Button variant="ghost" size="sm" className="font-mono">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="font-mono text-sm hover:text-primary hover:bg-primary/10"
+                >
                   SIGN IN
                 </Button>
               </Link>
               <Link href="/auth/register">
-                <Button size="sm" className="font-mono">
+                <Button size="sm" className="font-mono text-sm pulse-glow">
                   START FREE
                 </Button>
               </Link>
@@ -68,40 +88,68 @@ export function Navigation() {
           </div>
 
           {/* Mobile Menu Button */}
-          <button className="md:hidden" onClick={() => setIsOpen(!isOpen)}>
-            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          <button
+            className="md:hidden p-2 hover:bg-muted rounded-lg transition-colors"
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label="Toggle menu"
+          >
+            {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
 
         {/* Mobile Navigation */}
-        {isOpen && (
-          <div className="md:hidden border-t border-border">
-            <div className="py-4 space-y-4 font-mono text-sm">
-              <Link href="#features" className="block hover:text-primary transition-colors">
-                FEATURES
+        <div
+          className={`md:hidden transition-all duration-300 ease-in-out ${
+            isOpen
+              ? "max-h-screen opacity-100 border-t border-border"
+              : "max-h-0 opacity-0 overflow-hidden"
+          }`}
+        >
+          <div className="py-6 space-y-4 font-mono text-sm">
+            <Link
+              href="#features"
+              className="block py-2 px-4 hover:text-primary hover:bg-primary/5 rounded-lg transition-all duration-200"
+              onClick={handleLinkClick}
+            >
+              FEATURES
+            </Link>
+            <Link
+              href="#technology"
+              className="block py-2 px-4 hover:text-primary hover:bg-primary/5 rounded-lg transition-all duration-200"
+              onClick={handleLinkClick}
+            >
+              TECHNOLOGY
+            </Link>
+            <Link
+              href="#contact"
+              className="block py-2 px-4 hover:text-primary hover:bg-primary/5 rounded-lg transition-all duration-200"
+              onClick={handleLinkClick}
+            >
+              CONTACT
+            </Link>
+
+            <div className="pt-6 border-t border-border space-y-3 flex flex-col gap-5 py-6">
+              <Link href="/auth/login" onClick={handleLinkClick}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-center font-mono hover:text-primary hover:bg-primary/10"
+                >
+                  SIGN IN
+                </Button>
               </Link>
-              <Link href="#technology" className="block hover:text-primary transition-colors">
-                TECHNOLOGY
+              <Link href="/auth/register" onClick={handleLinkClick}>
+                <Button
+                  size="sm"
+                  className="w-full justify-center font-mono pulse-glow"
+                >
+                  START FREE
+                </Button>
               </Link>
-              <Link href="#pricing" className="block hover:text-primary transition-colors">
-                PRICING
-              </Link>
-              <div className="pt-4 border-t border-border space-y-3">
-                <Link href="/auth/login">
-                  <Button variant="ghost" size="sm" className="w-full font-mono">
-                    SIGN IN
-                  </Button>
-                </Link>
-                <Link href="/auth/register">
-                  <Button size="sm" className="w-full font-mono">
-                    START FREE
-                  </Button>
-                </Link>
-              </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
     </nav>
-  )
+  );
 }

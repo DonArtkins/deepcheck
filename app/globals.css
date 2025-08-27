@@ -149,6 +149,10 @@
   }
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 /* Added custom animation keyframes for futuristic effects */
 @keyframes pulse-glow {
   0%,
