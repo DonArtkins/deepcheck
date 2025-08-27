@@ -1,10 +1,10 @@
-import { Navigation } from "@/components/navigation"
-import { ParticleBackground } from "@/components/particle-background"
-import { HeroSection } from "@/components/hero-section"
-import { FeaturesSection } from "@/components/features-section"
-import { TechnologyShowcase } from "@/components/technology-showcase"
-import { CTASection } from "@/components/cta-section"
-import { Footer } from "@/components/footer"
+import { Navigation } from "@/components/navigation";
+import { ParticleBackground } from "@/components/particle-background";
+import { HeroSection } from "@/components/hero-section";
+import { FeaturesSection } from "@/components/features-section";
+import { TechnologyShowcase } from "@/components/technology-showcase";
+import { Footer } from "@/components/footer";
+import { ContactSection } from "@/components/contact-section";
 
 export default function HomePage() {
   return (
@@ -15,9 +15,9 @@ export default function HomePage() {
         <HeroSection />
         <FeaturesSection />
         <TechnologyShowcase />
-        <CTASection />
+        <ContactSection />
       </main>
       <Footer />
     </>
-  )
+  );
 }
