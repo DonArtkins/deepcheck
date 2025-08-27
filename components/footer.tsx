@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Shield, Github, Mail, GlobeLock } from "lucide-react";
+import Image from "next/image";
 
 export function Footer() {
   return (
@@ -8,12 +9,23 @@ export function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
           {/* Brand */}
           <div className="space-y-4 sm:col-span-2 lg:col-span-1">
-            <div className="flex items-center gap-2 font-mono font-bold text-lg sm:text-xl">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-primary rounded-lg flex items-center justify-center">
-                <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
-              </div>
-              <span>DEEPCHECK</span>
-            </div>
+            {/* Logo */}
+            <Link
+              href="/"
+              className="flex items-center gap-2 font-mono font-bold text-lg sm:text-xl"
+            >
+              <Image
+                src="/logo.png"
+                alt="DeepCheck Icon"
+                width={48}
+                height={48}
+                className="w-10 h-10 sm:w-12 sm:h-12"
+              />
+              <span>
+                DEEP<span className="text-primary">CHECK</span>
+              </span>
+            </Link>
+
             <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
               Advanced AI-powered deepfake detection system for media
               authenticity verification.
