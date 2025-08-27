@@ -1,8 +1,7 @@
 "use client";
 
-import type React from "react";
-
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,13 +26,16 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { useAuth } from "@/contexts/AuthContext";
+import type { RegisterFormData, FormErrors } from "@/types/types";
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const { register, isLoading, error, isAuthenticated, clearError } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<RegisterFormData>({
     firstName: "",
     lastName: "",
     email: "",
@@ -43,7 +45,22 @@ export default function RegisterPage() {
     confirmPassword: "",
     agreeToTerms: false,
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<FormErrors>({});
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/dashboard");
+    }
+  }, [isAuthenticated, router]);
+
+  // Clear errors when user types
+  useEffect(() => {
+    if (error || Object.keys(errors).length > 0) {
+      setErrors({});
+      clearError();
+    }
+  }, [formData, error, clearError]);
 
   const steps = [
     { number: 1, title: "Personal Info", icon: User },
@@ -51,58 +68,104 @@ export default function RegisterPage() {
     { number: 3, title: "Security", icon: Shield },
   ];
 
-  const handleNext = () => {
-    setErrors({});
+  const validateStep = (step: number): boolean => {
+    const newErrors: FormErrors = {};
 
-    if (currentStep === 1) {
-      if (!formData.firstName || !formData.lastName || !formData.email) {
-        setErrors({ general: "Please fill in all required fields" });
-        return;
+    if (step === 1) {
+      if (!formData.firstName.trim()) {
+        newErrors.firstName = "First name is required";
       }
-      if (!formData.email.includes("@")) {
-        setErrors({ email: "Please enter a valid email address" });
-        return;
+      if (!formData.lastName.trim()) {
+        newErrors.lastName = "Last name is required";
       }
-    } else if (currentStep === 2) {
-      if (!formData.organization || !formData.role) {
-        setErrors({ general: "Please fill in all required fields" });
-        return;
+      if (!formData.email.trim()) {
+        newErrors.email = "Email is required";
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        newErrors.email = "Please enter a valid email address";
+      }
+    } else if (step === 2) {
+      if (!formData.organization.trim()) {
+        newErrors.organization = "Organization is required";
+      }
+      if (!formData.role) {
+        newErrors.role = "Role is required";
+      }
+    } else if (step === 3) {
+      if (!formData.password) {
+        newErrors.password = "Password is required";
+      } else if (formData.password.length < 8) {
+        newErrors.password = "Password must be at least 8 characters";
+      } else if (
+        !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/.test(
+          formData.password
+        )
+      ) {
+        newErrors.password =
+          "Password must contain uppercase, lowercase, and number";
+      }
+
+      if (!formData.confirmPassword) {
+        newErrors.confirmPassword = "Please confirm your password";
+      } else if (formData.password !== formData.confirmPassword) {
+        newErrors.confirmPassword = "Passwords do not match";
+      }
+
+      if (!formData.agreeToTerms) {
+        newErrors.terms = "You must agree to the terms and conditions";
       }
     }
 
-    setCurrentStep(currentStep + 1);
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleNext = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handleBack = () => {
+    setCurrentStep(currentStep - 1);
+    setErrors({});
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setErrors({});
 
-    if (formData.password !== formData.confirmPassword) {
-      setErrors({ confirmPassword: "Passwords do not match" });
-      setIsLoading(false);
+    if (!validateStep(3)) {
       return;
     }
 
-    if (formData.password.length < 8) {
-      setErrors({ password: "Password must be at least 8 characters" });
-      setIsLoading(false);
-      return;
-    }
+    try {
+      await register({
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim(),
+        organization: formData.organization.trim(),
+        role: formData.role,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+      });
 
-    if (!formData.agreeToTerms) {
-      setErrors({ terms: "You must agree to the terms and conditions" });
-      setIsLoading(false);
-      return;
+      // Registration successful - redirect will happen via useEffect
+      router.push("/dashboard");
+    } catch (err) {
+      // Error is handled by AuthContext
+      console.error("Registration failed:", err);
     }
-
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      // Success - redirect to verification or dashboard
-      window.location.href = "/auth/verify-email";
-    }, 3000);
   };
+
+  const handleInputChange = (
+    field: keyof RegisterFormData,
+    value: string | boolean
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  if (isAuthenticated) {
+    return null; // Prevent flash while redirecting
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-card flex items-center justify-center p-4">
@@ -196,15 +259,19 @@ export default function RegisterPage() {
                         id="firstName"
                         value={formData.firstName}
                         onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            firstName: e.target.value,
-                          })
+                          handleInputChange("firstName", e.target.value)
                         }
-                        className="font-mono bg-background/50 border-border focus:border-primary transition-all duration-300"
+                        className={`font-mono bg-background/50 border-border focus:border-primary transition-all duration-300 ${
+                          errors.firstName ? "border-destructive" : ""
+                        }`}
                         placeholder="John"
                         required
                       />
+                      {errors.firstName && (
+                        <p className="text-xs text-destructive font-mono">
+                          {errors.firstName}
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="lastName" className="font-mono text-sm">
@@ -214,12 +281,19 @@ export default function RegisterPage() {
                         id="lastName"
                         value={formData.lastName}
                         onChange={(e) =>
-                          setFormData({ ...formData, lastName: e.target.value })
+                          handleInputChange("lastName", e.target.value)
                         }
-                        className="font-mono bg-background/50 border-border focus:border-primary transition-all duration-300"
+                        className={`font-mono bg-background/50 border-border focus:border-primary transition-all duration-300 ${
+                          errors.lastName ? "border-destructive" : ""
+                        }`}
                         placeholder="Doe"
                         required
                       />
+                      {errors.lastName && (
+                        <p className="text-xs text-destructive font-mono">
+                          {errors.lastName}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -234,7 +308,7 @@ export default function RegisterPage() {
                         type="email"
                         value={formData.email}
                         onChange={(e) =>
-                          setFormData({ ...formData, email: e.target.value })
+                          handleInputChange("email", e.target.value)
                         }
                         className={`font-mono bg-background/50 border-border focus:border-primary transition-all duration-300 pl-10 ${
                           errors.email ? "border-destructive" : ""
@@ -242,12 +316,12 @@ export default function RegisterPage() {
                         placeholder="john.doe@company.com"
                         required
                       />
-                      {errors.email && (
-                        <div className="absolute -bottom-5 left-0 text-xs text-destructive font-mono animate-pulse">
-                          {errors.email}
-                        </div>
-                      )}
                     </div>
+                    {errors.email && (
+                      <p className="text-xs text-destructive font-mono">
+                        {errors.email}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -263,15 +337,19 @@ export default function RegisterPage() {
                       id="organization"
                       value={formData.organization}
                       onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          organization: e.target.value,
-                        })
+                        handleInputChange("organization", e.target.value)
                       }
-                      className="font-mono bg-background/50 border-border focus:border-primary transition-all duration-300"
+                      className={`font-mono bg-background/50 border-border focus:border-primary transition-all duration-300 ${
+                        errors.organization ? "border-destructive" : ""
+                      }`}
                       placeholder="Acme Corporation"
                       required
                     />
+                    {errors.organization && (
+                      <p className="text-xs text-destructive font-mono">
+                        {errors.organization}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -281,10 +359,14 @@ export default function RegisterPage() {
                     <Select
                       value={formData.role}
                       onValueChange={(value) =>
-                        setFormData({ ...formData, role: value })
+                        handleInputChange("role", value)
                       }
                     >
-                      <SelectTrigger className="font-mono bg-background/50 border-border focus:border-primary">
+                      <SelectTrigger
+                        className={`font-mono bg-background/50 border-border focus:border-primary ${
+                          errors.role ? "border-destructive" : ""
+                        }`}
+                      >
                         <SelectValue placeholder="Select your role" />
                       </SelectTrigger>
                       <SelectContent>
@@ -302,6 +384,11 @@ export default function RegisterPage() {
                         <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
+                    {errors.role && (
+                      <p className="text-xs text-destructive font-mono">
+                        {errors.role}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -319,7 +406,7 @@ export default function RegisterPage() {
                         type={showPassword ? "text" : "password"}
                         value={formData.password}
                         onChange={(e) =>
-                          setFormData({ ...formData, password: e.target.value })
+                          handleInputChange("password", e.target.value)
                         }
                         className={`font-mono bg-background/50 border-border focus:border-primary transition-all duration-300 pr-10 ${
                           errors.password ? "border-destructive" : ""
@@ -338,12 +425,12 @@ export default function RegisterPage() {
                           <Eye className="w-4 h-4" />
                         )}
                       </button>
-                      {errors.password && (
-                        <div className="absolute -bottom-5 left-0 text-xs text-destructive font-mono animate-pulse">
-                          {errors.password}
-                        </div>
-                      )}
                     </div>
+                    {errors.password && (
+                      <p className="text-xs text-destructive font-mono">
+                        {errors.password}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -359,10 +446,7 @@ export default function RegisterPage() {
                         type={showConfirmPassword ? "text" : "password"}
                         value={formData.confirmPassword}
                         onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            confirmPassword: e.target.value,
-                          })
+                          handleInputChange("confirmPassword", e.target.value)
                         }
                         className={`font-mono bg-background/50 border-border focus:border-primary transition-all duration-300 pr-10 ${
                           errors.confirmPassword ? "border-destructive" : ""
@@ -383,12 +467,12 @@ export default function RegisterPage() {
                           <Eye className="w-4 h-4" />
                         )}
                       </button>
-                      {errors.confirmPassword && (
-                        <div className="absolute -bottom-5 left-0 text-xs text-destructive font-mono animate-pulse">
-                          {errors.confirmPassword}
-                        </div>
-                      )}
                     </div>
+                    {errors.confirmPassword && (
+                      <p className="text-xs text-destructive font-mono">
+                        {errors.confirmPassword}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-4">
@@ -397,10 +481,7 @@ export default function RegisterPage() {
                         type="checkbox"
                         checked={formData.agreeToTerms}
                         onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            agreeToTerms: e.target.checked,
-                          })
+                          handleInputChange("agreeToTerms", e.target.checked)
                         }
                         className="mt-1 rounded border-border"
                       />
@@ -422,18 +503,18 @@ export default function RegisterPage() {
                       </span>
                     </label>
                     {errors.terms && (
-                      <div className="text-xs text-destructive font-mono animate-pulse">
+                      <p className="text-xs text-destructive font-mono">
                         {errors.terms}
-                      </div>
+                      </p>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* Error Message */}
-              {errors.general && (
+              {/* Global Error Message */}
+              {error && (
                 <div className="text-sm text-destructive font-mono text-center animate-pulse bg-destructive/10 border border-destructive/20 rounded p-3">
-                  {errors.general}
+                  {error}
                 </div>
               )}
 
@@ -443,8 +524,9 @@ export default function RegisterPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setCurrentStep(currentStep - 1)}
+                    onClick={handleBack}
                     className="flex-1 font-mono"
+                    disabled={isLoading}
                   >
                     BACK
                   </Button>
@@ -457,7 +539,9 @@ export default function RegisterPage() {
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      CREATING ACCOUNT...
+                      {currentStep === 3
+                        ? "CREATING ACCOUNT..."
+                        : "PROCESSING..."}
                     </>
                   ) : currentStep === 3 ? (
                     <>
