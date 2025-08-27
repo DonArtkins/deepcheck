@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Shield } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
@@ -36,11 +37,15 @@ export function Navigation() {
           {/* Logo */}
           <Link
             href="/"
-            className="flex items-center gap-2 font-mono font-bold text-lg sm:text-xl transition-colors hover:text-primary"
+            className="flex items-center gap-2 font-mono font-bold text-lg sm:text-xl"
           >
-            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
-            </div>
+            <Image
+              src="/logo.png"
+              alt="DeepCheck Icon"
+              width={48}
+              height={48}
+              className="w-10 h-10 sm:w-12 sm:h-12"
+            />
             <span>
               DEEP<span className="text-primary">CHECK</span>
             </span>

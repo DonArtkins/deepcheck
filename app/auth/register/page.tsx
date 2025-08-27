@@ -1,21 +1,38 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Shield, Eye, EyeOff, ArrowRight, Loader2, Check, Building, User, Mail } from "lucide-react"
-import Link from "next/link"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Shield,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Loader2,
+  Check,
+  Building,
+  User,
+  Mail,
+} from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 
 export default function RegisterPage() {
-  const [currentStep, setCurrentStep] = useState(1)
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [currentStep, setCurrentStep] = useState(1);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -25,67 +42,67 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
     agreeToTerms: false,
-  })
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const steps = [
     { number: 1, title: "Personal Info", icon: User },
     { number: 2, title: "Organization", icon: Building },
     { number: 3, title: "Security", icon: Shield },
-  ]
+  ];
 
   const handleNext = () => {
-    setErrors({})
+    setErrors({});
 
     if (currentStep === 1) {
       if (!formData.firstName || !formData.lastName || !formData.email) {
-        setErrors({ general: "Please fill in all required fields" })
-        return
+        setErrors({ general: "Please fill in all required fields" });
+        return;
       }
       if (!formData.email.includes("@")) {
-        setErrors({ email: "Please enter a valid email address" })
-        return
+        setErrors({ email: "Please enter a valid email address" });
+        return;
       }
     } else if (currentStep === 2) {
       if (!formData.organization || !formData.role) {
-        setErrors({ general: "Please fill in all required fields" })
-        return
+        setErrors({ general: "Please fill in all required fields" });
+        return;
       }
     }
 
-    setCurrentStep(currentStep + 1)
-  }
+    setCurrentStep(currentStep + 1);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setErrors({})
+    e.preventDefault();
+    setIsLoading(true);
+    setErrors({});
 
     if (formData.password !== formData.confirmPassword) {
-      setErrors({ confirmPassword: "Passwords do not match" })
-      setIsLoading(false)
-      return
+      setErrors({ confirmPassword: "Passwords do not match" });
+      setIsLoading(false);
+      return;
     }
 
     if (formData.password.length < 8) {
-      setErrors({ password: "Password must be at least 8 characters" })
-      setIsLoading(false)
-      return
+      setErrors({ password: "Password must be at least 8 characters" });
+      setIsLoading(false);
+      return;
     }
 
     if (!formData.agreeToTerms) {
-      setErrors({ terms: "You must agree to the terms and conditions" })
-      setIsLoading(false)
-      return
+      setErrors({ terms: "You must agree to the terms and conditions" });
+      setIsLoading(false);
+      return;
     }
 
     // Simulate API call
     setTimeout(() => {
-      setIsLoading(false)
+      setIsLoading(false);
       // Success - redirect to verification or dashboard
-      window.location.href = "/auth/verify-email"
-    }, 3000)
-  }
+      window.location.href = "/auth/verify-email";
+    }, 3000);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-card flex items-center justify-center p-4">
@@ -104,13 +121,21 @@ export default function RegisterPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center pulse-glow">
-              <Shield className="w-7 h-7 text-primary-foreground" />
-            </div>
-            <span className="text-2xl font-mono font-bold">DEEPCHECK</span>
+            <Image
+              src="/logo.png"
+              alt="DeepCheck Icon"
+              width={48}
+              height={48}
+              className="w-10 h-10 sm:w-12 sm:h-12"
+            />
+            <span className="text-2xl font-mono font-bold">
+              DEEP<span className="text-primary">CHECK</span>
+            </span>
           </div>
           <h1 className="text-3xl font-mono font-bold mb-2">ACCESS REQUEST</h1>
-          <p className="text-muted-foreground">Create your account to access the detection system</p>
+          <p className="text-muted-foreground">
+            Create your account to access the detection system
+          </p>
         </div>
 
         {/* Progress Steps */}
@@ -124,7 +149,11 @@ export default function RegisterPage() {
                     : "border-border text-muted-foreground"
                 }`}
               >
-                {currentStep > step.number ? <Check className="w-4 h-4" /> : <step.icon className="w-4 h-4" />}
+                {currentStep > step.number ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  <step.icon className="w-4 h-4" />
+                )}
               </div>
               {index < steps.length - 1 && (
                 <div
@@ -150,8 +179,8 @@ export default function RegisterPage() {
                 currentStep === 3
                   ? handleSubmit
                   : (e) => {
-                      e.preventDefault()
-                      handleNext()
+                      e.preventDefault();
+                      handleNext();
                     }
               }
             >
@@ -166,7 +195,12 @@ export default function RegisterPage() {
                       <Input
                         id="firstName"
                         value={formData.firstName}
-                        onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            firstName: e.target.value,
+                          })
+                        }
                         className="font-mono bg-background/50 border-border focus:border-primary transition-all duration-300"
                         placeholder="John"
                         required
@@ -179,7 +213,9 @@ export default function RegisterPage() {
                       <Input
                         id="lastName"
                         value={formData.lastName}
-                        onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, lastName: e.target.value })
+                        }
                         className="font-mono bg-background/50 border-border focus:border-primary transition-all duration-300"
                         placeholder="Doe"
                         required
@@ -197,7 +233,9 @@ export default function RegisterPage() {
                         id="email"
                         type="email"
                         value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, email: e.target.value })
+                        }
                         className={`font-mono bg-background/50 border-border focus:border-primary transition-all duration-300 pl-10 ${
                           errors.email ? "border-destructive" : ""
                         }`}
@@ -224,7 +262,12 @@ export default function RegisterPage() {
                     <Input
                       id="organization"
                       value={formData.organization}
-                      onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          organization: e.target.value,
+                        })
+                      }
                       className="font-mono bg-background/50 border-border focus:border-primary transition-all duration-300"
                       placeholder="Acme Corporation"
                       required
@@ -235,14 +278,25 @@ export default function RegisterPage() {
                     <Label htmlFor="role" className="font-mono text-sm">
                       ROLE
                     </Label>
-                    <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+                    <Select
+                      value={formData.role}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, role: value })
+                      }
+                    >
                       <SelectTrigger className="font-mono bg-background/50 border-border focus:border-primary">
                         <SelectValue placeholder="Select your role" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="security-analyst">Security Analyst</SelectItem>
-                        <SelectItem value="forensic-investigator">Forensic Investigator</SelectItem>
-                        <SelectItem value="content-moderator">Content Moderator</SelectItem>
+                        <SelectItem value="security-analyst">
+                          Security Analyst
+                        </SelectItem>
+                        <SelectItem value="forensic-investigator">
+                          Forensic Investigator
+                        </SelectItem>
+                        <SelectItem value="content-moderator">
+                          Content Moderator
+                        </SelectItem>
                         <SelectItem value="researcher">Researcher</SelectItem>
                         <SelectItem value="developer">Developer</SelectItem>
                         <SelectItem value="other">Other</SelectItem>
@@ -264,7 +318,9 @@ export default function RegisterPage() {
                         id="password"
                         type={showPassword ? "text" : "password"}
                         value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, password: e.target.value })
+                        }
                         className={`font-mono bg-background/50 border-border focus:border-primary transition-all duration-300 pr-10 ${
                           errors.password ? "border-destructive" : ""
                         }`}
@@ -276,7 +332,11 @@ export default function RegisterPage() {
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                       >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showPassword ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
                       </button>
                       {errors.password && (
                         <div className="absolute -bottom-5 left-0 text-xs text-destructive font-mono animate-pulse">
@@ -287,7 +347,10 @@ export default function RegisterPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword" className="font-mono text-sm">
+                    <Label
+                      htmlFor="confirmPassword"
+                      className="font-mono text-sm"
+                    >
                       CONFIRM PASSWORD
                     </Label>
                     <div className="relative">
@@ -295,7 +358,12 @@ export default function RegisterPage() {
                         id="confirmPassword"
                         type={showConfirmPassword ? "text" : "password"}
                         value={formData.confirmPassword}
-                        onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            confirmPassword: e.target.value,
+                          })
+                        }
                         className={`font-mono bg-background/50 border-border focus:border-primary transition-all duration-300 pr-10 ${
                           errors.confirmPassword ? "border-destructive" : ""
                         }`}
@@ -304,10 +372,16 @@ export default function RegisterPage() {
                       />
                       <button
                         type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                       >
-                        {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showConfirmPassword ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
                       </button>
                       {errors.confirmPassword && (
                         <div className="absolute -bottom-5 left-0 text-xs text-destructive font-mono animate-pulse">
@@ -322,22 +396,35 @@ export default function RegisterPage() {
                       <input
                         type="checkbox"
                         checked={formData.agreeToTerms}
-                        onChange={(e) => setFormData({ ...formData, agreeToTerms: e.target.checked })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            agreeToTerms: e.target.checked,
+                          })
+                        }
                         className="mt-1 rounded border-border"
                       />
                       <span className="text-sm font-mono leading-relaxed">
                         I agree to the{" "}
-                        <Link href="/terms" className="text-primary hover:text-primary/80 transition-colors">
+                        <Link
+                          href="/terms"
+                          className="text-primary hover:text-primary/80 transition-colors"
+                        >
                           Terms of Service
                         </Link>{" "}
                         and{" "}
-                        <Link href="/privacy" className="text-primary hover:text-primary/80 transition-colors">
+                        <Link
+                          href="/privacy"
+                          className="text-primary hover:text-primary/80 transition-colors"
+                        >
                           Privacy Policy
                         </Link>
                       </span>
                     </label>
                     {errors.terms && (
-                      <div className="text-xs text-destructive font-mono animate-pulse">{errors.terms}</div>
+                      <div className="text-xs text-destructive font-mono animate-pulse">
+                        {errors.terms}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -362,7 +449,11 @@ export default function RegisterPage() {
                     BACK
                   </Button>
                 )}
-                <Button type="submit" className="flex-1 font-mono group pulse-glow" disabled={isLoading}>
+                <Button
+                  type="submit"
+                  className="flex-1 font-mono group pulse-glow"
+                  disabled={isLoading}
+                >
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -387,7 +478,10 @@ export default function RegisterPage() {
             <div className="text-center mt-6 pt-6 border-t border-border">
               <p className="text-sm text-muted-foreground font-mono">
                 Already have access?{" "}
-                <Link href="/auth/login" className="text-primary hover:text-primary/80 transition-colors">
+                <Link
+                  href="/auth/login"
+                  className="text-primary hover:text-primary/80 transition-colors"
+                >
                   Sign in
                 </Link>
               </p>
@@ -398,10 +492,11 @@ export default function RegisterPage() {
         {/* Security Notice */}
         <div className="mt-6 text-center">
           <p className="text-xs text-muted-foreground font-mono">
-            All accounts require verification • Enterprise-grade security protocols
+            All accounts require verification • Enterprise-grade security
+            protocols
           </p>
         </div>
       </div>
     </div>
-  )
+  );
 }

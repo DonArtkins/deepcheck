@@ -1,43 +1,44 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Shield, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react"
-import Link from "next/link"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Shield, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 
 export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-  })
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setErrors({})
+    e.preventDefault();
+    setIsLoading(true);
+    setErrors({});
 
     // Simulate API call
     setTimeout(() => {
-      setIsLoading(false)
+      setIsLoading(false);
       // Mock validation
       if (!formData.email.includes("@")) {
-        setErrors({ email: "Please enter a valid email address" })
+        setErrors({ email: "Please enter a valid email address" });
       } else if (formData.password.length < 6) {
-        setErrors({ password: "Password must be at least 6 characters" })
+        setErrors({ password: "Password must be at least 6 characters" });
       } else {
         // Success - redirect to dashboard
-        window.location.href = "/dashboard"
+        window.location.href = "/dashboard";
       }
-    }, 2000)
-  }
+    }, 2000);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-card flex items-center justify-center p-4">
@@ -56,13 +57,21 @@ export default function LoginPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center pulse-glow">
-              <Shield className="w-7 h-7 text-primary-foreground" />
-            </div>
-            <span className="text-2xl font-mono font-bold">DEEPCHECK</span>
+            <Image
+              src="/logo.png"
+              alt="DeepCheck Icon"
+              width={48}
+              height={48}
+              className="w-10 h-10 sm:w-12 sm:h-12"
+            />
+            <span className="text-2xl font-mono font-bold">
+              DEEP<span className="text-primary">CHECK</span>
+            </span>
           </div>
           <h1 className="text-3xl font-mono font-bold mb-2">SECURE ACCESS</h1>
-          <p className="text-muted-foreground">Enter your credentials to access the detection system</p>
+          <p className="text-muted-foreground">
+            Enter your credentials to access the detection system
+          </p>
         </div>
 
         {/* Login Form */}
@@ -82,7 +91,9 @@ export default function LoginPage() {
                     id="email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
                     className={`font-mono bg-background/50 border-border focus:border-primary transition-all duration-300 ${
                       errors.email ? "border-destructive" : ""
                     }`}
@@ -107,7 +118,9 @@ export default function LoginPage() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
                     className={`font-mono bg-background/50 border-border focus:border-primary transition-all duration-300 pr-10 ${
                       errors.password ? "border-destructive" : ""
                     }`}
@@ -119,7 +132,11 @@ export default function LoginPage() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
                   </button>
                   {errors.password && (
                     <div className="absolute -bottom-5 left-0 text-xs text-destructive font-mono animate-pulse">
@@ -144,7 +161,12 @@ export default function LoginPage() {
               </div>
 
               {/* Submit Button */}
-              <Button type="submit" className="w-full font-mono group pulse-glow" size="lg" disabled={isLoading}>
+              <Button
+                type="submit"
+                className="w-full font-mono group pulse-glow"
+                size="lg"
+                disabled={isLoading}
+              >
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -165,7 +187,9 @@ export default function LoginPage() {
                 <div className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="bg-card px-2 text-muted-foreground font-mono">OR</span>
+                <span className="bg-card px-2 text-muted-foreground font-mono">
+                  OR
+                </span>
               </div>
             </div>
 
@@ -173,7 +197,10 @@ export default function LoginPage() {
             <div className="text-center">
               <p className="text-sm text-muted-foreground font-mono">
                 Need access?{" "}
-                <Link href="/auth/register" className="text-primary hover:text-primary/80 transition-colors">
+                <Link
+                  href="/auth/register"
+                  className="text-primary hover:text-primary/80 transition-colors"
+                >
                   Request account
                 </Link>
               </p>
@@ -189,5 +216,5 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
