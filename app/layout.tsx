@@ -2,6 +2,7 @@ import type React from "react";
 import type { Metadata } from "next";
 import { Roboto_Mono, Orbitron } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 const robotoMono = Roboto_Mono({
   subsets: ["latin"],
@@ -45,7 +46,7 @@ export default function RootLayout({
       className={`${robotoMono.variable} ${orbitron.variable} dark antialiased`}
     >
       <body className="min-h-screen bg-background text-foreground">
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

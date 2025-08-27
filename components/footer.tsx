@@ -32,7 +32,7 @@ export function Footer() {
             </p>
             <div className="flex items-center gap-4">
               <Link
-                href="https://deepcheck.ai.vercel.app"
+                href="https://deepcheckai.vercel.app"
                 className="text-muted-foreground hover:text-primary transition-colors"
                 aria-label="Visit our website"
               >
