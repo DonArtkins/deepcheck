@@ -1,9 +1,8 @@
-"use client"
+"use client";
 
-import type React from "react"
-
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import type React from "react";
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
   Upload,
@@ -18,10 +17,11 @@ import {
   LogOut,
   Bell,
   Search,
-} from "lucide-react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { Suspense } from "react"
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { Suspense } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navigationItems = [
   {
@@ -60,12 +60,62 @@ const navigationItems = [
     icon: HelpCircle,
     description: "Documentation and support",
   },
-]
+];
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const pathname = usePathname()
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push("/auth/login");
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  // Handle logout
+  const handleLogout = () => {
+    logout();
+    router.push("/auth/login");
+  };
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center pulse-glow mx-auto mb-4">
+            <Shield className="w-6 h-6 text-primary-foreground" />
+          </div>
+          <p className="font-mono text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render dashboard if not authenticated
+  if (!isAuthenticated || !user) {
+    return null;
+  }
+
+  // Get user display name and role
+  const displayName =
+    user.firstName && user.lastName
+      ? `${user.firstName} ${user.lastName}`
+      : user.email;
+  const userRole = user.role
+    ? user.role
+        .split("-")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ")
+    : "User";
 
   return (
     <Suspense fallback={null}>
@@ -86,7 +136,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {sidebarOpen && (
                   <div className="flex-1">
                     <h1 className="font-mono font-bold text-lg">DEEPCHECK</h1>
-                    <p className="text-xs text-muted-foreground">Detection System</p>
+                    <p className="text-xs text-muted-foreground">
+                      Detection System
+                    </p>
                   </div>
                 )}
                 <Button
@@ -103,7 +155,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* Navigation */}
             <nav className="flex-1 p-4 space-y-2">
               {navigationItems.map((item) => {
-                const isActive = pathname === item.href
+                const isActive = pathname === item.href;
                 return (
                   <Link key={item.href} href={item.href}>
                     <div
@@ -116,14 +168,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       <item.icon className="w-5 h-5 flex-shrink-0" />
                       {sidebarOpen && (
                         <div className="flex-1 min-w-0">
-                          <div className="font-mono text-sm font-medium">{item.title}</div>
-                          <div className="text-xs opacity-70 truncate">{item.description}</div>
+                          <div className="font-mono text-sm font-medium">
+                            {item.title}
+                          </div>
+                          <div className="text-xs opacity-70 truncate">
+                            {item.description}
+                          </div>
                         </div>
                       )}
-                      {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary rounded-r-full" />}
+                      {isActive && (
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary rounded-r-full" />
+                      )}
                     </div>
                   </Link>
-                )
+                );
               })}
             </nav>
 
@@ -135,11 +193,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
                 {sidebarOpen && (
                   <div className="flex-1 min-w-0">
-                    <div className="font-mono text-sm font-medium">John Doe</div>
-                    <div className="text-xs text-muted-foreground">Security Analyst</div>
+                    <div
+                      className="font-mono text-sm font-medium truncate"
+                      title={displayName}
+                    >
+                      {displayName}
+                    </div>
+                    <div
+                      className="text-xs text-muted-foreground truncate"
+                      title={userRole}
+                    >
+                      {userRole}
+                    </div>
                   </div>
                 )}
-                <Button variant="ghost" size="sm" className="hover:bg-destructive/10 hover:text-destructive">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLogout}
+                  className="hover:bg-destructive/10 hover:text-destructive"
+                  title="Logout"
+                >
                   <LogOut className="w-4 h-4" />
                 </Button>
               </div>
@@ -161,8 +235,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           <Shield className="w-6 h-6 text-primary-foreground" />
                         </div>
                         <div>
-                          <h1 className="font-mono font-bold text-lg">DEEPCHECK</h1>
-                          <p className="text-xs text-muted-foreground">Detection System</p>
+                          <h1 className="font-mono font-bold text-lg">
+                            DEEPCHECK
+                          </h1>
+                          <p className="text-xs text-muted-foreground">
+                            Detection System
+                          </p>
                         </div>
                       </div>
                       <Button
@@ -179,9 +257,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   {/* Navigation */}
                   <nav className="flex-1 p-4 space-y-2">
                     {navigationItems.map((item) => {
-                      const isActive = pathname === item.href
+                      const isActive = pathname === item.href;
                       return (
-                        <Link key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)}>
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
                           <div
                             className={`group relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${
                               isActive
@@ -191,15 +273,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           >
                             <item.icon className="w-5 h-5 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
-                              <div className="font-mono text-sm font-medium">{item.title}</div>
-                              <div className="text-xs opacity-70 truncate">{item.description}</div>
+                              <div className="font-mono text-sm font-medium">
+                                {item.title}
+                              </div>
+                              <div className="text-xs opacity-70 truncate">
+                                {item.description}
+                              </div>
                             </div>
                             {isActive && (
                               <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary rounded-r-full" />
                             )}
                           </div>
                         </Link>
-                      )
+                      );
                     })}
                   </nav>
 
@@ -210,10 +296,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <User className="w-4 h-4 text-secondary-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-mono text-sm font-medium">John Doe</div>
-                        <div className="text-xs text-muted-foreground">Security Analyst</div>
+                        <div
+                          className="font-mono text-sm font-medium truncate"
+                          title={displayName}
+                        >
+                          {displayName}
+                        </div>
+                        <div
+                          className="text-xs text-muted-foreground truncate"
+                          title={userRole}
+                        >
+                          {userRole}
+                        </div>
                       </div>
-                      <Button variant="ghost" size="sm" className="hover:bg-destructive/10 hover:text-destructive">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleLogout}
+                        className="hover:bg-destructive/10 hover:text-destructive"
+                        title="Logout"
+                      >
                         <LogOut className="w-4 h-4" />
                       </Button>
                     </div>
@@ -225,7 +327,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         {/* Main Content */}
-        <div className={`transition-all duration-300 ${sidebarOpen ? "lg:ml-64" : "lg:ml-16"}`}>
+        <div
+          className={`transition-all duration-300 ${
+            sidebarOpen ? "lg:ml-64" : "lg:ml-16"
+          }`}
+        >
           {/* Top Bar */}
           <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border">
             <div className="flex items-center justify-between px-4 py-3">
@@ -249,7 +355,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
 
               <div className="flex items-center gap-3">
-                <Button variant="ghost" size="sm" className="relative hover:bg-accent">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="relative hover:bg-accent"
+                >
                   <Bell className="w-5 h-5" />
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full flex items-center justify-center">
                     <div className="w-1.5 h-1.5 bg-white rounded-full" />
@@ -267,5 +377,5 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </div>
     </Suspense>
-  )
+  );
 }
