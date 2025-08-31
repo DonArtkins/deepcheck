@@ -22,6 +22,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import Image from "next/image";
+import LoadingOverlay from "@/components/ui/loading-overlay";
 
 const navigationItems = [
   {
@@ -69,6 +71,7 @@ export default function DashboardLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
@@ -80,24 +83,27 @@ export default function DashboardLayout({
     }
   }, [isAuthenticated, isLoading, router]);
 
-  // Handle logout
-  const handleLogout = () => {
-    logout();
-    router.push("/auth/login");
+  // Handle logout with loading state
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      router.push("/auth/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
-  // Show loading state while checking authentication
+  // Show loading overlay for authentication check
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center pulse-glow mx-auto mb-4">
-            <Shield className="w-6 h-6 text-primary-foreground" />
-          </div>
-          <p className="font-mono text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingOverlay message="Initializing system..." isVisible={true} />;
+  }
+
+  // Show loading overlay for logout
+  if (isLoggingOut) {
+    return <LoadingOverlay message="Securing session..." isVisible={true} />;
   }
 
   // Don't render dashboard if not authenticated
@@ -118,7 +124,7 @@ export default function DashboardLayout({
     : "User";
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<LoadingOverlay message="Loading interface..." />}>
       <div className="min-h-screen bg-background">
         {/* Desktop Sidebar */}
         <aside
@@ -130,9 +136,13 @@ export default function DashboardLayout({
             {/* Header */}
             <div className="p-4 border-b border-border">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center pulse-glow">
-                  <Shield className="w-6 h-6 text-primary-foreground" />
-                </div>
+                <Image
+                  src="/logo.png"
+                  alt="DeepCheck Icon"
+                  width={48}
+                  height={48}
+                  className="w-10 h-10 sm:w-12 sm:h-12"
+                />
                 {sidebarOpen && (
                   <div className="flex-1">
                     <h1 className="font-mono font-bold text-lg">DEEPCHECK</h1>
