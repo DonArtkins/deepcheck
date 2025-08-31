@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
@@ -15,8 +15,11 @@ import {
   Shield,
   User,
   LogOut,
-  Bell,
   Search,
+  Activity,
+  Zap,
+  ChevronRight,
+  UserCog,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -72,9 +75,28 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
+
+  // Close profile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowProfileMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -86,8 +108,9 @@ export default function DashboardLayout({
   // Handle logout with loading state
   const handleLogout = async () => {
     setIsLoggingOut(true);
+    setShowProfileMenu(false);
     try {
-      await logout();
+      logout();
       router.push("/auth/login");
     } catch (error) {
       console.error("Logout error:", error);
@@ -134,17 +157,27 @@ export default function DashboardLayout({
         >
           <div className="flex flex-col h-full">
             {/* Header */}
-            <div className="p-4 border-b border-border">
-              <div className="flex items-center gap-3">
-                <Image
-                  src="/logo.png"
-                  alt="DeepCheck Icon"
-                  width={48}
-                  height={48}
-                  className="w-10 h-10 sm:w-12 sm:h-12"
-                />
+            <div
+              className={`border-b border-border transition-all duration-300 ${
+                sidebarOpen ? "p-4" : "p-2"
+              }`}
+            >
+              <div
+                className={`flex items-center transition-all duration-300 ${
+                  sidebarOpen ? "gap-3" : "flex-col gap-2"
+                }`}
+              >
+                <div className="flex-shrink-0">
+                  <Image
+                    src="/logo.png"
+                    alt="DeepCheck Icon"
+                    width={32}
+                    height={32}
+                    className="w-8 h-8"
+                  />
+                </div>
                 {sidebarOpen && (
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <h1 className="font-mono font-bold text-lg">DEEPCHECK</h1>
                     <p className="text-xs text-muted-foreground">
                       Detection System
@@ -155,7 +188,9 @@ export default function DashboardLayout({
                   variant="ghost"
                   size="sm"
                   onClick={() => setSidebarOpen(!sidebarOpen)}
-                  className="hover:bg-accent"
+                  className={`hover:bg-accent flex-shrink-0 transition-all duration-300 ${
+                    sidebarOpen ? "w-8 h-8 p-0" : "w-8 h-8 p-0"
+                  }`}
                 >
                   <Menu className="w-4 h-4" />
                 </Button>
@@ -163,17 +198,26 @@ export default function DashboardLayout({
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 p-4 space-y-2">
+            <nav
+              className={`flex-1 space-y-1 transition-all duration-300 ${
+                sidebarOpen ? "p-4" : "p-2"
+              }`}
+            >
               {navigationItems.map((item) => {
                 const isActive = pathname === item.href;
                 return (
                   <Link key={item.href} href={item.href}>
                     <div
-                      className={`group relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${
+                      className={`group relative flex items-center rounded-lg transition-all duration-200 ${
+                        sidebarOpen
+                          ? "gap-3 px-3 py-3"
+                          : "justify-center px-2 py-3"
+                      } ${
                         isActive
-                          ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                          : "hover:bg-accent hover:text-accent-foreground"
+                          ? "bg-gradient-to-r from-primary/15 to-primary/5 text-primary border border-primary/20"
+                          : "hover:bg-accent/50 hover:text-accent-foreground"
                       }`}
+                      title={!sidebarOpen ? item.title : undefined}
                     >
                       <item.icon className="w-5 h-5 flex-shrink-0" />
                       {sidebarOpen && (
@@ -187,7 +231,13 @@ export default function DashboardLayout({
                         </div>
                       )}
                       {isActive && (
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary rounded-r-full" />
+                        <div
+                          className={`absolute bg-primary rounded-full ${
+                            sidebarOpen
+                              ? "left-0 top-0 bottom-0 w-1"
+                              : "top-0 left-0 right-0 h-1"
+                          }`}
+                        />
                       )}
                     </div>
                   </Link>
@@ -195,38 +245,92 @@ export default function DashboardLayout({
               })}
             </nav>
 
-            {/* User Profile */}
-            <div className="p-4 border-t border-border">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-secondary-foreground" />
+            {/* User Profile Section */}
+            <div
+              className={`border-t border-border relative transition-all duration-300 ${
+                sidebarOpen ? "p-4" : "p-2"
+              }`}
+              ref={profileMenuRef}
+            >
+              {/* Profile Button */}
+              <button
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className={`w-full group relative flex rounded-lg hover:bg-accent/50 transition-all duration-200 ${
+                  sidebarOpen
+                    ? "items-center gap-3 px-3 py-3"
+                    : "flex-col items-center justify-center px-2 py-2"
+                }`}
+                title={!sidebarOpen ? displayName : undefined}
+              >
+                <div
+                  className={`bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    sidebarOpen ? "w-10 h-10" : "w-8 h-8"
+                  }`}
+                >
+                  <User
+                    className={`text-primary-foreground ${
+                      sidebarOpen ? "w-5 h-5" : "w-4 h-4"
+                    }`}
+                  />
                 </div>
                 {sidebarOpen && (
-                  <div className="flex-1 min-w-0">
-                    <div
-                      className="font-mono text-sm font-medium truncate"
-                      title={displayName}
-                    >
-                      {displayName}
+                  <>
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="font-mono text-sm font-medium truncate">
+                        {displayName}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {userRole}
+                      </div>
                     </div>
-                    <div
-                      className="text-xs text-muted-foreground truncate"
-                      title={userRole}
-                    >
-                      {userRole}
-                    </div>
-                  </div>
+                    <ChevronRight
+                      className={`w-4 h-4 text-muted-foreground transition-transform ${
+                        showProfileMenu ? "rotate-90" : ""
+                      }`}
+                    />
+                  </>
                 )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="hover:bg-destructive/10 hover:text-destructive"
-                  title="Logout"
+              </button>
+
+              {/* Profile Popup Menu */}
+              {showProfileMenu && (
+                <div
+                  className={`absolute bg-card border border-border rounded-xl shadow-2xl z-50 transition-all duration-200 ${
+                    sidebarOpen
+                      ? "bottom-full left-4 right-4 mb-2"
+                      : "bottom-2 left-full ml-2 w-48"
+                  }`}
                 >
-                  <LogOut className="w-4 h-4" />
-                </Button>
-              </div>
+                  <div className="p-2 space-y-1">
+                    {!sidebarOpen && (
+                      <div className="px-3 py-2 border-b border-border">
+                        <div className="font-mono text-sm font-medium truncate">
+                          {displayName}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {userRole}
+                        </div>
+                      </div>
+                    )}
+                    <Link
+                      href="/dashboard/profile"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent/50 transition-colors group"
+                    >
+                      <UserCog className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
+                      <span className="font-mono text-sm">View Profile</span>
+                    </Link>
+                    <div className="h-px bg-border my-1" />
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-destructive/10 hover:text-destructive transition-colors group w-full text-left"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span className="font-mono text-sm">Logout</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </aside>
@@ -241,9 +345,13 @@ export default function DashboardLayout({
                   <div className="p-4 border-b border-border">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center pulse-glow">
-                          <Shield className="w-6 h-6 text-primary-foreground" />
-                        </div>
+                        <Image
+                          src="/logo.png"
+                          alt="DeepCheck Icon"
+                          width={40}
+                          height={40}
+                          className="w-10 h-10"
+                        />
                         <div>
                           <h1 className="font-mono font-bold text-lg">
                             DEEPCHECK
@@ -257,7 +365,7 @@ export default function DashboardLayout({
                         variant="ghost"
                         size="sm"
                         onClick={() => setMobileMenuOpen(false)}
-                        className="hover:bg-accent"
+                        className="hover:bg-accent w-8 h-8 p-0"
                       >
                         <X className="w-4 h-4" />
                       </Button>
@@ -265,7 +373,7 @@ export default function DashboardLayout({
                   </div>
 
                   {/* Navigation */}
-                  <nav className="flex-1 p-4 space-y-2">
+                  <nav className="flex-1 p-4 space-y-1">
                     {navigationItems.map((item) => {
                       const isActive = pathname === item.href;
                       return (
@@ -275,10 +383,10 @@ export default function DashboardLayout({
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           <div
-                            className={`group relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${
+                            className={`group relative flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 ${
                               isActive
-                                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                                : "hover:bg-accent hover:text-accent-foreground"
+                                ? "bg-gradient-to-r from-primary/15 to-primary/5 text-primary border border-primary/20"
+                                : "hover:bg-accent/50 hover:text-accent-foreground"
                             }`}
                           >
                             <item.icon className="w-5 h-5 flex-shrink-0" />
@@ -291,7 +399,7 @@ export default function DashboardLayout({
                               </div>
                             </div>
                             {isActive && (
-                              <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary rounded-r-full" />
+                              <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-full" />
                             )}
                           </div>
                         </Link>
@@ -299,35 +407,38 @@ export default function DashboardLayout({
                     })}
                   </nav>
 
-                  {/* User Profile */}
-                  <div className="p-4 border-t border-border">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center">
-                        <User className="w-4 h-4 text-secondary-foreground" />
+                  {/* Mobile User Profile */}
+                  <div className="p-4 border-t border-border space-y-2">
+                    <div className="flex items-center gap-3 px-3 py-2 bg-accent/20 rounded-lg">
+                      <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center">
+                        <User className="w-5 h-5 text-primary-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div
-                          className="font-mono text-sm font-medium truncate"
-                          title={displayName}
-                        >
+                        <div className="font-mono text-sm font-medium truncate">
                           {displayName}
                         </div>
-                        <div
-                          className="text-xs text-muted-foreground truncate"
-                          title={userRole}
-                        >
+                        <div className="text-xs text-muted-foreground truncate">
                           {userRole}
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link
+                        href="/dashboard/profile"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-accent/30 hover:bg-accent/50 transition-colors"
+                      >
+                        <UserCog className="w-4 h-4" />
+                        <span className="font-mono text-xs">Profile</span>
+                      </Link>
+                      <button
                         onClick={handleLogout}
-                        className="hover:bg-destructive/10 hover:text-destructive"
-                        title="Logout"
+                        className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 hover:bg-destructive/20 text-destructive transition-colors"
                       >
                         <LogOut className="w-4 h-4" />
-                      </Button>
+                        <span className="font-mono text-xs">Logout</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -344,13 +455,13 @@ export default function DashboardLayout({
         >
           {/* Top Bar */}
           <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border">
-            <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center justify-between px-4 py-[19px]">
               <div className="flex items-center gap-4">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setMobileMenuOpen(true)}
-                  className="lg:hidden hover:bg-accent"
+                  className="lg:hidden hover:bg-accent w-8 h-8 p-0"
                 >
                   <Menu className="w-5 h-5" />
                 </Button>
@@ -359,31 +470,45 @@ export default function DashboardLayout({
                   <input
                     type="text"
                     placeholder="Search analyses..."
-                    className="w-64 pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-48 sm:w-64 pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="relative hover:bg-accent"
-                >
-                  <Bell className="w-5 h-5" />
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 bg-white rounded-full" />
-                  </div>
-                </Button>
-                <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-secondary-foreground" />
+              <div className="flex items-center gap-2 sm:gap-3">
+                {/* System Status Indicator */}
+                <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-green-500/10 rounded-lg border border-green-500/20">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <span className="font-mono text-xs text-green-600 dark:text-green-400">
+                    SYSTEM ONLINE
+                  </span>
                 </div>
+
+                {/* Performance Indicator */}
+                <div className="flex items-center gap-2 px-3 py-2 bg-accent/20 rounded-lg border border-border">
+                  <Activity className="w-4 h-4 text-green-500" />
+                  <span className="font-mono text-xs text-muted-foreground">
+                    99.9%
+                  </span>
+                </div>
+
+                {/* Quick Action Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="font-mono text-xs bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20 hover:from-primary/20 hover:to-primary/10 transition-all duration-200"
+                  onClick={() => router.push("/dashboard/upload")}
+                >
+                  <Zap className="w-4 h-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">QUICK SCAN</span>
+                  <span className="sm:hidden">SCAN</span>
+                </Button>
               </div>
             </div>
           </header>
 
           {/* Page Content */}
-          <main className="p-6">{children}</main>
+          <main className="p-4 sm:p-6">{children}</main>
         </div>
       </div>
     </Suspense>
