@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Shield,
   TrendingUp,
@@ -14,7 +14,7 @@ import {
   Activity,
   BarChart3,
   Zap,
-} from "lucide-react"
+} from "lucide-react";
 
 // Mock data for dashboard
 const mockStats = {
@@ -24,7 +24,7 @@ const mockStats = {
   authenticMedia: 1158,
   avgProcessingTime: 2.3,
   systemUptime: 99.9,
-}
+};
 
 const recentActivity = [
   {
@@ -59,11 +59,10 @@ const recentActivity = [
     confidence: 87.6,
     timestamp: "18 minutes ago",
   },
-]
+];
 
 export default function DashboardPage() {
-  const [liveStats, setLiveStats] = useState(mockStats)
-  const [isScanning, setIsScanning] = useState(false)
+  const [liveStats, setLiveStats] = useState(mockStats);
 
   // Simulate live updates
   useEffect(() => {
@@ -73,163 +72,197 @@ export default function DashboardPage() {
         totalAnalyses: prev.totalAnalyses + Math.floor(Math.random() * 3),
         accuracyRate: 99.7 + (Math.random() - 0.5) * 0.2,
         avgProcessingTime: 2.3 + (Math.random() - 0.5) * 0.4,
-      }))
-    }, 5000)
+      }));
+    }, 5000);
 
-    return () => clearInterval(interval)
-  }, [])
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 lg:space-y-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-mono font-bold">SYSTEM OVERVIEW</h1>
-          <p className="text-muted-foreground mt-1">Real-time detection system status and analytics</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1 bg-secondary/10 border border-secondary/20 rounded-full">
-            <div className="w-2 h-2 bg-secondary rounded-full animate-pulse" />
-            <span className="text-sm font-mono text-secondary">SYSTEM ONLINE</span>
-          </div>
-          <Button className="font-mono pulse-glow">
-            <Upload className="w-4 h-4 mr-2" />
-            NEW ANALYSIS
-          </Button>
-        </div>
+      <div className="space-y-2">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-mono font-bold">
+          SYSTEM OVERVIEW
+        </h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
+          Real-time detection system status and analytics
+        </p>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="p-6">
+      {/* Key Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+        {/* Total Analyses */}
+        <Card className="border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors duration-200">
+          <CardContent className="p-4 lg:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-mono text-muted-foreground">TOTAL ANALYSES</p>
-                <p className="text-2xl font-mono font-bold text-primary">{liveStats.totalAnalyses.toLocaleString()}</p>
+              <div className="space-y-1">
+                <p className="text-xs sm:text-sm font-mono text-muted-foreground">
+                  TOTAL ANALYSES
+                </p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-mono font-bold text-primary">
+                  {liveStats.totalAnalyses.toLocaleString()}
+                </p>
               </div>
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                <BarChart3 className="w-6 h-6 text-primary" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
+                <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
               </div>
             </div>
-            <div className="flex items-center gap-1 mt-2 text-xs font-mono">
-              <TrendingUp className="w-3 h-3 text-secondary" />
-              <span className="text-secondary">+12.5% from last week</span>
+            <div className="flex items-center gap-1 mt-3 text-xs font-mono">
+              <TrendingUp className="w-3 h-3 text-green-500" />
+              <span className="text-green-600 dark:text-green-400">
+                +12.5% from last week
+              </span>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-secondary/20 bg-secondary/5">
-          <CardContent className="p-6">
+        {/* Accuracy Rate */}
+        <Card className="border-green-500/20 bg-green-500/5 hover:bg-green-500/10 transition-colors duration-200">
+          <CardContent className="p-4 lg:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-mono text-muted-foreground">ACCURACY RATE</p>
-                <p className="text-2xl font-mono font-bold text-secondary">{liveStats.accuracyRate.toFixed(1)}%</p>
+              <div className="space-y-1">
+                <p className="text-xs sm:text-sm font-mono text-muted-foreground">
+                  ACCURACY RATE
+                </p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-mono font-bold text-green-600 dark:text-green-400">
+                  {liveStats.accuracyRate.toFixed(1)}%
+                </p>
               </div>
-              <div className="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center">
-                <Shield className="w-6 h-6 text-secondary" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-500/10 rounded-lg flex items-center justify-center shrink-0">
+                <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-green-500" />
               </div>
             </div>
-            <div className="flex items-center gap-1 mt-2 text-xs font-mono">
-              <CheckCircle className="w-3 h-3 text-secondary" />
-              <span className="text-secondary">Military-grade precision</span>
+            <div className="flex items-center gap-1 mt-3 text-xs font-mono">
+              <CheckCircle className="w-3 h-3 text-green-500" />
+              <span className="text-green-600 dark:text-green-400">
+                Military-grade precision
+              </span>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-destructive/20 bg-destructive/5">
-          <CardContent className="p-6">
+        {/* Deepfakes Detected */}
+        <Card className="border-destructive/20 bg-destructive/5 hover:bg-destructive/10 transition-colors duration-200">
+          <CardContent className="p-4 lg:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-mono text-muted-foreground">DEEPFAKES DETECTED</p>
-                <p className="text-2xl font-mono font-bold text-destructive">{liveStats.deepfakesDetected}</p>
+              <div className="space-y-1">
+                <p className="text-xs sm:text-sm font-mono text-muted-foreground">
+                  DEEPFAKES DETECTED
+                </p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-mono font-bold text-destructive">
+                  {liveStats.deepfakesDetected}
+                </p>
               </div>
-              <div className="w-12 h-12 bg-destructive/10 rounded-lg flex items-center justify-center">
-                <AlertTriangle className="w-6 h-6 text-destructive" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-destructive/10 rounded-lg flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-destructive" />
               </div>
             </div>
-            <div className="flex items-center gap-1 mt-2 text-xs font-mono">
+            <div className="flex items-center gap-1 mt-3 text-xs font-mono">
               <Eye className="w-3 h-3 text-destructive" />
               <span className="text-destructive">7.1% detection rate</span>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-accent/20 bg-accent/5">
-          <CardContent className="p-6">
+        {/* Average Processing Time */}
+        <Card className="border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10 transition-colors duration-200">
+          <CardContent className="p-4 lg:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-mono text-muted-foreground">AVG PROCESSING</p>
-                <p className="text-2xl font-mono font-bold text-accent">{liveStats.avgProcessingTime.toFixed(1)}s</p>
+              <div className="space-y-1">
+                <p className="text-xs sm:text-sm font-mono text-muted-foreground">
+                  AVG PROCESSING
+                </p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-mono font-bold text-blue-600 dark:text-blue-400">
+                  {liveStats.avgProcessingTime.toFixed(1)}s
+                </p>
               </div>
-              <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center">
-                <Zap className="w-6 h-6 text-accent" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500/10 rounded-lg flex items-center justify-center shrink-0">
+                <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
               </div>
             </div>
-            <div className="flex items-center gap-1 mt-2 text-xs font-mono">
-              <Clock className="w-3 h-3 text-accent" />
-              <span className="text-accent">Lightning fast analysis</span>
+            <div className="flex items-center gap-1 mt-3 text-xs font-mono">
+              <Clock className="w-3 h-3 text-blue-500" />
+              <span className="text-blue-600 dark:text-blue-400">
+                Lightning fast analysis
+              </span>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* System Status and Recent Activity */}
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
         {/* System Status */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="font-mono flex items-center gap-2">
+        <Card className="lg:col-span-1 hover:shadow-lg transition-shadow duration-200">
+          <CardHeader className="pb-4">
+            <CardTitle className="font-mono flex items-center gap-2 text-lg">
               <Activity className="w-5 h-5 text-primary" />
               SYSTEM STATUS
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
+          <CardContent className="space-y-6">
+            {/* Status Indicators */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between py-2">
                 <span className="text-sm font-mono">AI Engine</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-secondary rounded-full animate-pulse" />
-                  <span className="text-sm font-mono text-secondary">ONLINE</span>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <span className="text-sm font-mono text-green-600 dark:text-green-400">
+                    ONLINE
+                  </span>
                 </div>
               </div>
-              <div className="flex items-center justify-between">
+
+              <div className="flex items-center justify-between py-2">
                 <span className="text-sm font-mono">Neural Networks</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-secondary rounded-full animate-pulse" />
-                  <span className="text-sm font-mono text-secondary">ACTIVE</span>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <span className="text-sm font-mono text-green-600 dark:text-green-400">
+                    ACTIVE
+                  </span>
                 </div>
               </div>
-              <div className="flex items-center justify-between">
+
+              <div className="flex items-center justify-between py-2">
                 <span className="text-sm font-mono">Processing Queue</span>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                  <span className="text-sm font-mono text-primary">3 PENDING</span>
+                  <span className="text-sm font-mono text-primary">
+                    3 PENDING
+                  </span>
                 </div>
               </div>
-              <div className="flex items-center justify-between">
+
+              <div className="flex items-center justify-between py-2">
                 <span className="text-sm font-mono">System Uptime</span>
-                <span className="text-sm font-mono text-secondary">{liveStats.systemUptime}%</span>
+                <span className="text-sm font-mono text-green-600 dark:text-green-400">
+                  {liveStats.systemUptime}%
+                </span>
               </div>
             </div>
 
-            <div className="pt-4 border-t border-border">
-              <div className="space-y-2">
+            {/* Resource Usage */}
+            <div className="pt-4 border-t border-border space-y-4">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm font-mono">
                   <span>CPU Usage</span>
-                  <span>23%</span>
+                  <span className="text-primary">23%</span>
                 </div>
-                <div className="w-full bg-muted rounded-full h-2">
-                  <div className="bg-primary h-2 rounded-full w-[23%] transition-all duration-500" />
+                <div className="w-full bg-muted rounded-full h-2.5">
+                  <div className="bg-gradient-to-r from-primary to-primary/80 h-2.5 rounded-full w-[23%] transition-all duration-500" />
                 </div>
               </div>
-              <div className="space-y-2 mt-3">
+
+              <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm font-mono">
                   <span>Memory Usage</span>
-                  <span>67%</span>
+                  <span className="text-green-600 dark:text-green-400">
+                    67%
+                  </span>
                 </div>
-                <div className="w-full bg-muted rounded-full h-2">
-                  <div className="bg-secondary h-2 rounded-full w-[67%] transition-all duration-500" />
+                <div className="w-full bg-muted rounded-full h-2.5">
+                  <div className="bg-gradient-to-r from-green-500 to-green-500/80 h-2.5 rounded-full w-[67%] transition-all duration-500" />
                 </div>
               </div>
             </div>
@@ -237,82 +270,83 @@ export default function DashboardPage() {
         </Card>
 
         {/* Recent Activity */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="font-mono flex items-center gap-2">
+        <Card className="lg:col-span-2 hover:shadow-lg transition-shadow duration-200">
+          <CardHeader className="pb-4">
+            <CardTitle className="font-mono flex items-center gap-2 text-lg">
               <Clock className="w-5 h-5 text-primary" />
               RECENT ACTIVITY
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
               {recentActivity.map((activity) => (
                 <div
                   key={activity.id}
-                  className="flex items-center justify-between p-3 bg-card/50 border border-border rounded-lg hover:border-primary/30 transition-colors"
+                  className="flex items-center justify-between p-4 bg-card/50 border border-border rounded-xl hover:border-primary/30 hover:bg-card/80 transition-all duration-200 group"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                         activity.result === "authentic"
-                          ? "bg-secondary/10 text-secondary"
-                          : "bg-destructive/10 text-destructive"
+                          ? "bg-green-500/10 text-green-500 border border-green-500/20"
+                          : "bg-destructive/10 text-destructive border border-destructive/20"
                       }`}
                     >
                       {activity.result === "authentic" ? (
-                        <CheckCircle className="w-4 h-4" />
+                        <CheckCircle className="w-5 h-5" />
                       ) : (
-                        <AlertTriangle className="w-4 h-4" />
+                        <AlertTriangle className="w-5 h-5" />
                       )}
                     </div>
-                    <div>
-                      <p className="font-mono text-sm font-medium">{activity.filename}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {activity.result === "authentic" ? "Authentic Media" : "Deepfake Detected"} •{" "}
-                        {activity.confidence}% confidence
+                    <div className="flex-1 min-w-0">
+                      <p className="font-mono text-sm font-medium truncate group-hover:text-primary transition-colors">
+                        {activity.filename}
                       </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span
+                          className={`text-xs font-mono px-2 py-1 rounded-md ${
+                            activity.result === "authentic"
+                              ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                              : "bg-destructive/10 text-destructive"
+                          }`}
+                        >
+                          {activity.result === "authentic"
+                            ? "AUTHENTIC"
+                            : "DEEPFAKE"}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {activity.confidence}% confidence
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs font-mono text-muted-foreground">{activity.timestamp}</p>
-                    <Button variant="ghost" size="sm" className="text-xs font-mono">
-                      VIEW DETAILS
+                  <div className="text-right space-y-2 shrink-0 ml-4">
+                    <p className="text-xs font-mono text-muted-foreground">
+                      {activity.timestamp}
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs font-mono h-7 px-3 hover:bg-primary/10 hover:text-primary transition-colors"
+                    >
+                      VIEW
                     </Button>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="mt-4 text-center">
-              <Button variant="outline" className="font-mono bg-transparent">
+
+            <div className="pt-4 border-t border-border">
+              <Button
+                variant="outline"
+                className="w-full font-mono bg-transparent hover:bg-accent/50 transition-colors duration-200"
+              >
                 VIEW ALL ACTIVITY
               </Button>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-mono">QUICK ACTIONS</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button className="h-20 flex-col gap-2 font-mono pulse-glow">
-              <Upload className="w-6 h-6" />
-              UPLOAD MEDIA
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2 font-mono bg-transparent">
-              <BarChart3 className="w-6 h-6" />
-              VIEW ANALYTICS
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2 font-mono bg-transparent">
-              <Shield className="w-6 h-6" />
-              SYSTEM SETTINGS
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
-  )
+  );
 }

@@ -12,7 +12,6 @@ import {
   HelpCircle,
   Menu,
   X,
-  Shield,
   User,
   LogOut,
   Search,
@@ -74,9 +73,11 @@ export default function DashboardLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
@@ -89,6 +90,12 @@ export default function DashboardLayout({
         !profileMenuRef.current.contains(event.target as Node)
       ) {
         setShowProfileMenu(false);
+      }
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
+        setMobileSearchOpen(false);
       }
     };
 
@@ -447,6 +454,31 @@ export default function DashboardLayout({
           )}
         </div>
 
+        {/* Mobile Search Overlay */}
+        {mobileSearchOpen && (
+          <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm lg:hidden">
+            <div className="fixed top-0 left-0 right-0 bg-card border-b border-border p-4">
+              <div className="relative" ref={searchRef}>
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search analyses..."
+                  className="w-full pl-10 pr-12 py-3 bg-background border border-border rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                  autoFocus
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setMobileSearchOpen(false)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 p-0"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Main Content */}
         <div
           className={`transition-all duration-300 ${
@@ -455,60 +487,86 @@ export default function DashboardLayout({
         >
           {/* Top Bar */}
           <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border">
-            <div className="flex items-center justify-between px-4 py-[19px]">
-              <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between px-4 py-[17px]">
+              {/* Mobile Left Section */}
+              <div className="flex items-center gap-3 lg:hidden">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setMobileMenuOpen(true)}
-                  className="lg:hidden hover:bg-accent w-8 h-8 p-0"
+                  className="hover:bg-accent w-8 h-8 p-0"
                 >
                   <Menu className="w-5 h-5" />
                 </Button>
-                <div className="relative">
+                <div className="flex items-center gap-2">
+                  <Image
+                    src="/logo.png"
+                    alt="DeepCheck Icon"
+                    width={24}
+                    height={24}
+                    className="w-6 h-6"
+                  />
+                  <h1 className="font-mono font-bold text-lg">DEEPCHECK</h1>
+                </div>
+              </div>
+
+              {/* Desktop Left Section - Search */}
+              <div className="hidden lg:flex items-center gap-4 flex-1 max-w-md">
+                <div className="relative w-full">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
                     type="text"
                     placeholder="Search analyses..."
-                    className="w-48 sm:w-64 pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                    className="w-full pl-10 pr-4 py-2.5 bg-muted/30 border border-border/50 rounded-xl text-sm font-mono placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:bg-background hover:bg-muted/50 transition-all duration-200"
                   />
                 </div>
               </div>
 
+              {/* Right Section */}
               <div className="flex items-center gap-2 sm:gap-3">
-                {/* System Status Indicator */}
-                <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-green-500/10 rounded-lg border border-green-500/20">
+                {/* Mobile Search Button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setMobileSearchOpen(true)}
+                  className="lg:hidden hover:bg-accent w-8 h-8 p-0"
+                >
+                  <Search className="w-5 h-5" />
+                </Button>
+
+                {/* System Status Indicator - Hidden on mobile */}
+                <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-green-500/10 rounded-lg border border-green-500/20">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                   <span className="font-mono text-xs text-green-600 dark:text-green-400">
                     SYSTEM ONLINE
                   </span>
                 </div>
 
-                {/* Performance Indicator */}
-                <div className="flex items-center gap-2 px-3 py-2 bg-accent/20 rounded-lg border border-border">
+                {/* Performance Indicator - Hidden on small mobile */}
+                <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-accent/20 rounded-lg border border-border">
                   <Activity className="w-4 h-4 text-green-500" />
                   <span className="font-mono text-xs text-muted-foreground">
                     99.9%
                   </span>
                 </div>
 
-                {/* Quick Action Button */}
+                {/* Quick Action Button - Hidden on mobile */}
                 <Button
                   variant="outline"
                   size="sm"
-                  className="font-mono text-xs bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20 hover:from-primary/20 hover:to-primary/10 transition-all duration-200"
+                  className="hidden sm:flex font-mono text-xs bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20 hover:from-primary/20 hover:to-primary/10 transition-all duration-200"
                   onClick={() => router.push("/dashboard/upload")}
                 >
-                  <Zap className="w-4 h-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">QUICK SCAN</span>
-                  <span className="sm:hidden">SCAN</span>
+                  <Zap className="w-4 h-4 mr-2" />
+                  <span className="hidden md:inline">QUICK SCAN</span>
+                  <span className="md:hidden">SCAN</span>
                 </Button>
               </div>
             </div>
           </header>
 
           {/* Page Content */}
-          <main className="p-4 sm:p-6">{children}</main>
+          <main className="p-4 lg:p-6 xl:p-8">{children}</main>
         </div>
       </div>
     </Suspense>
