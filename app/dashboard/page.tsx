@@ -79,7 +79,7 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="space-y-6 lg:space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-6 lg:space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="space-y-2">
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-mono font-bold">
@@ -192,77 +192,83 @@ export default function DashboardPage() {
       </div>
 
       {/* System Status and Recent Activity */}
-      <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
         {/* System Status */}
         <Card className="lg:col-span-1 hover:shadow-lg transition-shadow duration-200">
-          <CardHeader className="pb-4">
-            <CardTitle className="font-mono flex items-center gap-2 text-lg">
-              <Activity className="w-5 h-5 text-primary" />
+          <CardHeader className="pb-3 sm:pb-4">
+            <CardTitle className="font-mono flex items-center gap-2 text-base sm:text-lg">
+              <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
               SYSTEM STATUS
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4 sm:space-y-6">
             {/* Status Indicators */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm font-mono">AI Engine</span>
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex items-center justify-between py-1.5 sm:py-2">
+                <span className="text-xs sm:text-sm font-mono">AI Engine</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-sm font-mono text-green-600 dark:text-green-400">
+                  <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full animate-pulse" />
+                  <span className="text-xs sm:text-sm font-mono text-green-600 dark:text-green-400">
                     ONLINE
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm font-mono">Neural Networks</span>
+              <div className="flex items-center justify-between py-1.5 sm:py-2">
+                <span className="text-xs sm:text-sm font-mono">
+                  Neural Networks
+                </span>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-sm font-mono text-green-600 dark:text-green-400">
+                  <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full animate-pulse" />
+                  <span className="text-xs sm:text-sm font-mono text-green-600 dark:text-green-400">
                     ACTIVE
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm font-mono">Processing Queue</span>
+              <div className="flex items-center justify-between py-1.5 sm:py-2">
+                <span className="text-xs sm:text-sm font-mono">
+                  Processing Queue
+                </span>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                  <span className="text-sm font-mono text-primary">
+                  <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary rounded-full animate-pulse" />
+                  <span className="text-xs sm:text-sm font-mono text-primary">
                     3 PENDING
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm font-mono">System Uptime</span>
-                <span className="text-sm font-mono text-green-600 dark:text-green-400">
+              <div className="flex items-center justify-between py-1.5 sm:py-2">
+                <span className="text-xs sm:text-sm font-mono">
+                  System Uptime
+                </span>
+                <span className="text-xs sm:text-sm font-mono text-green-600 dark:text-green-400">
                   {liveStats.systemUptime}%
                 </span>
               </div>
             </div>
 
             {/* Resource Usage */}
-            <div className="pt-4 border-t border-border space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm font-mono">
+            <div className="pt-3 sm:pt-4 border-t border-border space-y-3 sm:space-y-4">
+              <div className="space-y-2 sm:space-y-3">
+                <div className="flex items-center justify-between text-xs sm:text-sm font-mono">
                   <span>CPU Usage</span>
                   <span className="text-primary">23%</span>
                 </div>
-                <div className="w-full bg-muted rounded-full h-2.5">
-                  <div className="bg-gradient-to-r from-primary to-primary/80 h-2.5 rounded-full w-[23%] transition-all duration-500" />
+                <div className="w-full bg-muted rounded-full h-2 sm:h-2.5">
+                  <div className="bg-gradient-to-r from-primary to-primary/80 h-2 sm:h-2.5 rounded-full w-[23%] transition-all duration-500" />
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm font-mono">
+              <div className="space-y-2 sm:space-y-3">
+                <div className="flex items-center justify-between text-xs sm:text-sm font-mono">
                   <span>Memory Usage</span>
                   <span className="text-green-600 dark:text-green-400">
                     67%
                   </span>
                 </div>
-                <div className="w-full bg-muted rounded-full h-2.5">
-                  <div className="bg-gradient-to-r from-green-500 to-green-500/80 h-2.5 rounded-full w-[67%] transition-all duration-500" />
+                <div className="w-full bg-muted rounded-full h-2 sm:h-2.5">
+                  <div className="bg-gradient-to-r from-green-500 to-green-500/80 h-2 sm:h-2.5 rounded-full w-[67%] transition-all duration-500" />
                 </div>
               </div>
             </div>
@@ -271,40 +277,40 @@ export default function DashboardPage() {
 
         {/* Recent Activity */}
         <Card className="lg:col-span-2 hover:shadow-lg transition-shadow duration-200">
-          <CardHeader className="pb-4">
-            <CardTitle className="font-mono flex items-center gap-2 text-lg">
-              <Clock className="w-5 h-5 text-primary" />
+          <CardHeader className="pb-3 sm:pb-4">
+            <CardTitle className="font-mono flex items-center gap-2 text-base sm:text-lg">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
               RECENT ACTIVITY
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
+          <CardContent className="space-y-3 sm:space-y-4">
+            <div className="space-y-2 sm:space-y-3">
               {recentActivity.map((activity) => (
                 <div
                   key={activity.id}
-                  className="flex items-center justify-between p-4 bg-card/50 border border-border rounded-xl hover:border-primary/30 hover:bg-card/80 transition-all duration-200 group"
+                  className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between p-3 sm:p-4 bg-card/50 border border-border rounded-lg sm:rounded-xl hover:border-primary/30 hover:bg-card/80 transition-all duration-200 group"
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${
                         activity.result === "authentic"
                           ? "bg-green-500/10 text-green-500 border border-green-500/20"
                           : "bg-destructive/10 text-destructive border border-destructive/20"
                       }`}
                     >
                       {activity.result === "authentic" ? (
-                        <CheckCircle className="w-5 h-5" />
+                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                       ) : (
-                        <AlertTriangle className="w-5 h-5" />
+                        <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-mono text-sm font-medium truncate group-hover:text-primary transition-colors">
+                      <p className="font-mono text-xs sm:text-sm font-medium truncate group-hover:text-primary transition-colors">
                         {activity.filename}
                       </p>
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-1">
                         <span
-                          className={`text-xs font-mono px-2 py-1 rounded-md ${
+                          className={`text-xs font-mono px-2 py-0.5 sm:py-1 rounded-md inline-block w-fit ${
                             activity.result === "authentic"
                               ? "bg-green-500/10 text-green-600 dark:text-green-400"
                               : "bg-destructive/10 text-destructive"
@@ -320,14 +326,14 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="text-right space-y-2 shrink-0 ml-4">
+                  <div className="flex items-center justify-between sm:flex-col sm:text-right sm:space-y-2 shrink-0 sm:ml-4">
                     <p className="text-xs font-mono text-muted-foreground">
                       {activity.timestamp}
                     </p>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-xs font-mono h-7 px-3 hover:bg-primary/10 hover:text-primary transition-colors"
+                      className="text-xs font-mono h-6 sm:h-7 px-2 sm:px-3 hover:bg-primary/10 hover:text-primary transition-colors"
                     >
                       VIEW
                     </Button>
@@ -336,10 +342,10 @@ export default function DashboardPage() {
               ))}
             </div>
 
-            <div className="pt-4 border-t border-border">
+            <div className="pt-3 sm:pt-4 border-t border-border">
               <Button
                 variant="outline"
-                className="w-full font-mono bg-transparent hover:bg-accent/50 transition-colors duration-200"
+                className="w-full font-mono text-xs sm:text-sm bg-transparent hover:bg-accent/50 transition-colors duration-200"
               >
                 VIEW ALL ACTIVITY
               </Button>
