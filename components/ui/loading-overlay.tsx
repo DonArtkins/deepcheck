@@ -13,7 +13,7 @@ export default function LoadingOverlay({
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-lg flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-lg flex items-center justify-center p-4 pt-10">
       <div className="w-full max-w-md mx-auto text-center space-y-8">
         {/* Animated Logo Container */}
         <div className="relative mx-auto w-40 h-40 flex items-center justify-center">
