@@ -25,7 +25,6 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-// import { useSession } from "next-auth/react";
 
 interface UploadedFile {
   id: string;
@@ -59,11 +58,17 @@ const analysisStages = [
 export default function UploadPage() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [analyses, setAnalyses] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const { user, isAuthenticated, isLoading } = useAuth();
-  // const { data: session } = useSession();
+  const { user, isAuthenticated, isLoading, token, apiCall } = useAuth();
+
+  // Show loading state while auth is initializing
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      // Could redirect to login or show appropriate message
+      console.log("User not authenticated");
+    }
+  }, [isLoading, isAuthenticated]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -92,72 +97,84 @@ export default function UploadPage() {
     []
   );
 
-  const handleFiles = useCallback((newFiles: File[]) => {
-    const validFiles = newFiles.filter((file) => {
-      const isValidType =
-        file.type.startsWith("image/") ||
-        file.type.startsWith("video/") ||
-        file.type.startsWith("audio/");
-      const isValidSize = file.size <= 100 * 1024 * 1024; // 100MB limit
-      return isValidType && isValidSize;
-    });
+  const handleFiles = useCallback(
+    (newFiles: File[]) => {
+      if (!isAuthenticated) {
+        console.error("User not authenticated");
+        return;
+      }
 
-    const uploadedFiles: UploadedFile[] = validFiles.map((file) => ({
-      id: Math.random().toString(36).substr(2, 9),
-      file,
-      status: "uploading",
-      progress: 0,
-      analysisStage: "Preparing upload...",
-      preview: file.type.startsWith("image/")
-        ? URL.createObjectURL(file)
-        : undefined,
-    }));
+      const validFiles = newFiles.filter((file) => {
+        const isValidType =
+          file.type.startsWith("image/") ||
+          file.type.startsWith("video/") ||
+          file.type.startsWith("audio/");
+        const isValidSize = file.size <= 100 * 1024 * 1024; // 100MB limit
+        return isValidType && isValidSize;
+      });
 
-    setFiles((prev) => [...prev, ...uploadedFiles]);
+      if (validFiles.length === 0) {
+        console.error("No valid files selected");
+        return;
+      }
 
-    // Upload each file
-    uploadedFiles.forEach((uploadedFile) => {
-      uploadFile(uploadedFile);
-    });
-  }, []);
+      const uploadedFiles: UploadedFile[] = validFiles.map((file) => ({
+        id: Math.random().toString(36).substr(2, 9),
+        file,
+        status: "uploading",
+        progress: 0,
+        analysisStage: "Preparing upload...",
+        preview: file.type.startsWith("image/")
+          ? URL.createObjectURL(file)
+          : undefined,
+      }));
+
+      setFiles((prev) => [...prev, ...uploadedFiles]);
+
+      // Upload each file
+      uploadedFiles.forEach((uploadedFile) => {
+        uploadFile(uploadedFile);
+      });
+    },
+    [isAuthenticated]
+  );
 
   const uploadFile = async (uploadedFile: UploadedFile) => {
     try {
-      if (!isAuthenticated) {
+      if (!isAuthenticated || !token) {
         setFiles((prev) =>
           prev.map((file) =>
             file.id === uploadedFile.id
-              ? { ...file, status: "error", analysisStage: "Please log in" }
+              ? {
+                  ...file,
+                  status: "error",
+                  analysisStage: "Authentication required",
+                }
               : file
           )
         );
         return;
       }
 
-      // Create FormData
-      const formData = new FormData();
-      formData.append("file", uploadedFile.file);
-
+      // Update status to uploading
       setFiles((prev) =>
         prev.map((file) =>
           file.id === uploadedFile.id
-            ? { ...file, analysisStage: "Uploading file..." }
+            ? { ...file, analysisStage: "Uploading file...", progress: 10 }
             : file
         )
       );
 
-      // Upload file
-      const response = await fetch("/api/dashboard/upload", {
+      // Create FormData
+      const formData = new FormData();
+      formData.append("file", uploadedFile.file);
+      formData.append("name", uploadedFile.file.name);
+
+      // Use the apiCall method from AuthContext which handles JWT authentication
+      const result = await apiCall("/api/dashboard/upload", {
         method: "POST",
-        body: formData,
+        body: formData, // apiCall will handle FormData and not set Content-Type
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Upload failed");
-      }
-
-      const result = await response.json();
 
       if (result.success) {
         setFiles((prev) =>
@@ -166,18 +183,18 @@ export default function UploadPage() {
               ? {
                   ...file,
                   status: "processing",
-                  progress: 0,
+                  progress: 20,
                   analysisStage: "Analysis started...",
-                  analysisId: result.analysis.id,
+                  analysisId: result.data.id,
                 }
               : file
           )
         );
 
         // Start polling for analysis results
-        pollAnalysisResults(uploadedFile.id, result.analysis.id);
+        pollAnalysisResults(uploadedFile.id, result.data.id);
       } else {
-        throw new Error("Upload failed");
+        throw new Error(result.message || "Upload failed");
       }
     } catch (error) {
       console.error("Upload error:", error);
@@ -188,7 +205,7 @@ export default function UploadPage() {
                 ...file,
                 status: "error",
                 analysisStage: `Error: ${
-                  error instanceof Error ? error.message : "Unknown error"
+                  error instanceof Error ? error.message : "Upload failed"
                 }`,
               }
             : file
@@ -204,22 +221,17 @@ export default function UploadPage() {
 
     const poll = async () => {
       try {
-        const response = await fetch(`/api/analyses/${analysisId}`);
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch analysis");
-        }
-
-        const data = await response.json();
+        // Use apiCall for authenticated requests
+        const data = await apiCall(`/api/dashboard/analyses/${analysisId}`);
         const analysis = data.analysis;
 
         // Update progress based on status
-        if (analysis.status === "processing") {
+        if (analysis.status === "processing" || analysis.status === "pending") {
           // Simulate progress through stages
-          const progressPerStage = 100 / analysisStages.length;
+          const progressPerStage = 80 / analysisStages.length; // Reserve 20% for completion
           const currentProgress = Math.min(
             95,
-            (stageIndex + 1) * progressPerStage
+            20 + (stageIndex + 1) * progressPerStage
           );
 
           setFiles((prev) =>
@@ -235,8 +247,8 @@ export default function UploadPage() {
             )
           );
 
-          // Move to next stage
-          if (stageIndex < analysisStages.length - 1) {
+          // Move to next stage occasionally
+          if (Math.random() > 0.7 && stageIndex < analysisStages.length - 1) {
             stageIndex++;
           }
 
@@ -276,14 +288,17 @@ export default function UploadPage() {
                 : file
             )
           );
-        } else if (analysis.status === "failed") {
+        } else if (
+          analysis.status === "failed" ||
+          analysis.status === "error"
+        ) {
           setFiles((prev) =>
             prev.map((file) =>
               file.id === fileId
                 ? {
                     ...file,
                     status: "error",
-                    analysisStage: "Analysis failed",
+                    analysisStage: analysis.error || "Analysis failed",
                   }
                 : file
             )
@@ -293,6 +308,18 @@ export default function UploadPage() {
           attempts++;
           if (attempts < maxAttempts) {
             setTimeout(poll, 5000);
+          } else {
+            setFiles((prev) =>
+              prev.map((file) =>
+                file.id === fileId
+                  ? {
+                      ...file,
+                      status: "error",
+                      analysisStage: "Analysis timed out",
+                    }
+                  : file
+              )
+            );
           }
         }
       } catch (error) {
@@ -311,11 +338,18 @@ export default function UploadPage() {
       }
     };
 
-    poll();
+    // Start polling after a short delay
+    setTimeout(poll, 2000);
   };
 
   const removeFile = (fileId: string) => {
-    setFiles((prev) => prev.filter((file) => file.id !== fileId));
+    setFiles((prev) => {
+      const fileToRemove = prev.find((file) => file.id === fileId);
+      if (fileToRemove?.preview) {
+        URL.revokeObjectURL(fileToRemove.preview);
+      }
+      return prev.filter((file) => file.id !== fileId);
+    });
   };
 
   const retryAnalysis = (fileId: string) => {
@@ -330,6 +364,7 @@ export default function UploadPage() {
                 progress: 0,
                 analysisStage: "Retrying upload...",
                 result: undefined,
+                analysisId: undefined,
               }
             : f
         )
@@ -347,6 +382,54 @@ export default function UploadPage() {
       return <Volume2 className="w-8 h-8 text-muted-foreground" />;
     return <FileImage className="w-8 h-8 text-muted-foreground" />;
   };
+
+  const downloadReport = async (file: UploadedFile) => {
+    if (!file.analysisId) return;
+
+    try {
+      // This would generate and download a PDF report
+      const reportData = {
+        filename: file.file.name,
+        result: file.result,
+        analysisId: file.analysisId,
+        timestamp: new Date().toISOString(),
+      };
+
+      const blob = new Blob([JSON.stringify(reportData, null, 2)], {
+        type: "application/json",
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `deepcheck-report-${file.file.name}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Download error:", error);
+    }
+  };
+
+  // Clean up object URLs on unmount
+  useEffect(() => {
+    return () => {
+      files.forEach((file) => {
+        if (file.preview) {
+          URL.revokeObjectURL(file.preview);
+        }
+      });
+    };
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 lg:space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -366,13 +449,27 @@ export default function UploadPage() {
         </div>
       </div>
 
+      {/* Authentication Warning */}
+      {!isAuthenticated && (
+        <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                Please log in to upload and analyze files.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Upload Zone */}
       <Card
         className={`border-2 border-dashed transition-all duration-300 hover:shadow-lg ${
           isDragging
             ? "border-primary bg-primary/5 shadow-lg"
             : "border-border hover:border-primary/50"
-        }`}
+        } ${!isAuthenticated ? "opacity-50" : ""}`}
       >
         <CardContent className="p-8 sm:p-12">
           <div
@@ -420,6 +517,7 @@ export default function UploadPage() {
                 accept="image/*,video/*,audio/*"
                 onChange={handleFileSelect}
                 className="hidden"
+                disabled={!isAuthenticated}
               />
             </div>
           </div>
@@ -483,6 +581,9 @@ export default function UploadPage() {
                           <span className="flex items-center gap-2">
                             {file.status === "processing" && (
                               <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                            )}
+                            {file.status === "uploading" && (
+                              <Upload className="w-3 h-3 text-primary" />
                             )}
                             <span className="truncate">
                               {file.analysisStage}
@@ -552,6 +653,7 @@ export default function UploadPage() {
                               variant="outline"
                               size="sm"
                               className="font-mono text-xs hover:bg-accent/50"
+                              onClick={() => downloadReport(file)}
                             >
                               <Download className="w-3 h-3 mr-1" />
                               REPORT

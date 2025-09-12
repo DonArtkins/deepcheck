@@ -18,6 +18,8 @@ export async function POST(request: NextRequest) {
       modelUsed,
       anomalies,
       metadata,
+      error: errorMessage, // In case the AI processing failed
+      status: resultStatus, // Allow overriding status (e.g., "failed")
     } = body;
 
     if (!analysis_id) {
@@ -27,31 +29,83 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update analysis with AI results
-    const updateData = {
-      status: "completed" as const,
-      isDeepfake,
-      confidence,
-      processingTime,
-      detectionMethod: modelUsed,
-      anomalies:
-        anomalies?.map((anomaly: any) => ({
-          type: anomaly.type,
-          severity: anomaly.severity,
-          description: anomaly.description,
-        })) || [],
-      analysis: {
+    // Check if analysis exists first
+    const existingAnalysis = await analysisRepository.findById(analysis_id);
+    if (!existingAnalysis) {
+      return NextResponse.json(
+        { error: "Analysis not found" },
+        { status: 404 }
+      );
+    }
+
+    // Build update data based on whether processing succeeded or failed
+    const updateData: any = {
+      status: resultStatus || (errorMessage ? "failed" : "completed"),
+      updatedAt: new Date(),
+    };
+
+    // Add completion timestamp if successful
+    if (updateData.status === "completed") {
+      updateData.completedAt = new Date();
+    }
+
+    // Add error message if processing failed
+    if (errorMessage) {
+      updateData.error = errorMessage;
+    }
+
+    // Only add successful processing results if no error
+    if (!errorMessage && updateData.status === "completed") {
+      updateData.isDeepfake = isDeepfake;
+      updateData.confidence = confidence;
+      updateData.processingTime = processingTime;
+      updateData.detectionMethod = modelUsed;
+
+      // Process anomalies with proper typing
+      if (anomalies && Array.isArray(anomalies)) {
+        updateData.anomalies = anomalies.map((anomaly: any) => ({
+          type: anomaly.type || "unknown",
+          severity: ["low", "medium", "high"].includes(anomaly.severity)
+            ? anomaly.severity
+            : "medium",
+          description: anomaly.description || "",
+        }));
+      } else {
+        updateData.anomalies = [];
+      }
+
+      // Process analysis metadata
+      updateData.analysis = {
         faceRegions: metadata?.faceRegions || 0,
-        anomalies: anomalies?.length || 0,
+        anomalies: anomalies && Array.isArray(anomalies) ? anomalies.length : 0,
         neuralNetworkScores: {
           faceSwapDetection: metadata?.faceSwapDetection || 0,
           faceReenactmentDetection: metadata?.faceReenactmentDetection || 0,
           speechSynthesisDetection: metadata?.speechSynthesisDetection || 0,
           overallManipulation: confidence || 0,
         },
-        frameAnalysis: metadata?.frameAnalysis || [],
-      },
-    };
+        frameAnalysis: Array.isArray(metadata?.frameAnalysis)
+          ? metadata.frameAnalysis
+          : [],
+      };
+
+      // Process media metadata if provided
+      if (metadata) {
+        updateData.metadata = {
+          codec: metadata.codec,
+          framerate: metadata.framerate,
+          bitrate: metadata.bitrate,
+          colorSpace: metadata.colorSpace,
+          duration: metadata.duration,
+          dimensions: metadata.dimensions
+            ? {
+                width: metadata.dimensions.width || 0,
+                height: metadata.dimensions.height || 0,
+              }
+            : undefined,
+        };
+      }
+    }
 
     const updatedAnalysis = await analysisRepository.updateWithResults(
       analysis_id,
@@ -60,14 +114,25 @@ export async function POST(request: NextRequest) {
 
     if (!updatedAnalysis) {
       return NextResponse.json(
-        { error: "Analysis not found" },
-        { status: 404 }
+        { error: "Failed to update analysis" },
+        { status: 500 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      message: "Analysis results updated successfully",
+      message:
+        updateData.status === "failed"
+          ? "Analysis marked as failed"
+          : "Analysis results updated successfully",
+      data: {
+        id: updatedAnalysis.id,
+        status: updatedAnalysis.status,
+        isDeepfake: updatedAnalysis.isDeepfake,
+        confidence: updatedAnalysis.confidence,
+        completedAt: updatedAnalysis.completedAt,
+        error: updatedAnalysis.error,
+      },
     });
   } catch (error) {
     console.error("Webhook error:", error);

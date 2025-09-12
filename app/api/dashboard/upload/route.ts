@@ -1,16 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { verifyToken } from "@/lib/auth"; // Import your JWT verification function
 import cloudinary from "@/lib/cloudinary";
 import { analysisRepository } from "@/lib/models/Analysis";
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    // Check authentication using your custom JWT system
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json(
-        { success: false, message: "Unauthorized" },
+        { success: false, message: "Authorization header required" },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+    let user;
+
+    try {
+      user = verifyToken(token); // This returns the decoded token payload
+    } catch (error) {
+      return NextResponse.json(
+        { success: false, message: "Invalid or expired token" },
         { status: 401 }
       );
     }
@@ -56,15 +67,15 @@ export async function POST(request: NextRequest) {
         .end(buffer);
     });
 
-    // Save analysis record to database - Fix property names to match AnalysisResult interface
+    // Save analysis record to database
     const analysisData = {
-      userId: (session.user as any).id,
-      filename: name || file.name, // Changed from 'name' to 'filename'
-      mediaType: "image" as const, // Added required mediaType
-      mediaUrl: uploadResponse.secure_url, // Changed from 'imageUrl' to 'mediaUrl'
-      cloudinaryId: uploadResponse.public_id, // Changed from 'cloudinaryPublicId' to 'cloudinaryId'
-      fileSize: file.size, // Added required fileSize
-      uploadDate: new Date(), // Changed from 'uploadedAt' to 'uploadDate'
+      userId: user.id, // Use the user ID from the decoded token
+      filename: name || file.name,
+      mediaType: "image" as const,
+      mediaUrl: uploadResponse.secure_url,
+      cloudinaryId: uploadResponse.public_id,
+      fileSize: file.size,
+      uploadDate: new Date(),
       status: "pending" as const,
     };
 

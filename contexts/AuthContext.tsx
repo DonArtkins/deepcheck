@@ -141,10 +141,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     url: string,
     options: RequestInit = {}
   ): Promise<any> => {
+    // Check if body is FormData to avoid setting Content-Type
+    const isFormData = options.body instanceof FormData;
+
     const config: RequestInit = {
       ...options,
       headers: {
-        "Content-Type": "application/json",
+        // Only set Content-Type for non-FormData requests
+        ...(!isFormData && { "Content-Type": "application/json" }),
         ...(state.token && { Authorization: `Bearer ${state.token}` }),
         ...options.headers,
       },
