@@ -1,8 +1,7 @@
 "use client";
 
 import type React from "react";
-
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -22,8 +21,11 @@ import {
   Shield,
   Clock,
   HardDrive,
+  Volume2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+// import { useSession } from "next-auth/react";
 
 interface UploadedFile {
   id: string;
@@ -32,6 +34,7 @@ interface UploadedFile {
   status: "uploading" | "processing" | "completed" | "error";
   progress: number;
   analysisStage: string;
+  analysisId?: string;
   result?: {
     isDeepfake: boolean;
     confidence: number;
@@ -45,18 +48,22 @@ interface UploadedFile {
 }
 
 const analysisStages = [
-  { name: "Preprocessing media...", icon: Upload, duration: 1000 },
-  { name: "Extracting facial features...", icon: Scan, duration: 2000 },
+  { name: "Uploading to cloud...", icon: Upload, duration: 1000 },
+  { name: "Preprocessing media...", icon: Scan, duration: 1500 },
+  { name: "Extracting features...", icon: Eye, duration: 2000 },
   { name: "Running AI analysis...", icon: Brain, duration: 3000 },
-  { name: "Detecting anomalies...", icon: Eye, duration: 2000 },
+  { name: "Detecting anomalies...", icon: AlertTriangle, duration: 2000 },
   { name: "Calculating confidence...", icon: Shield, duration: 1000 },
 ];
 
 export default function UploadPage() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [analyses, setAnalyses] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const { user, isAuthenticated, isLoading } = useAuth();
+  // const { data: session } = useSession();
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -88,7 +95,9 @@ export default function UploadPage() {
   const handleFiles = useCallback((newFiles: File[]) => {
     const validFiles = newFiles.filter((file) => {
       const isValidType =
-        file.type.startsWith("image/") || file.type.startsWith("video/");
+        file.type.startsWith("image/") ||
+        file.type.startsWith("video/") ||
+        file.type.startsWith("audio/");
       const isValidSize = file.size <= 100 * 1024 * 1024; // 100MB limit
       return isValidType && isValidSize;
     });
@@ -98,7 +107,7 @@ export default function UploadPage() {
       file,
       status: "uploading",
       progress: 0,
-      analysisStage: "Uploading file...",
+      analysisStage: "Preparing upload...",
       preview: file.type.startsWith("image/")
         ? URL.createObjectURL(file)
         : undefined,
@@ -106,112 +115,203 @@ export default function UploadPage() {
 
     setFiles((prev) => [...prev, ...uploadedFiles]);
 
-    // Simulate upload and analysis process
+    // Upload each file
     uploadedFiles.forEach((uploadedFile) => {
-      simulateAnalysis(uploadedFile.id);
+      uploadFile(uploadedFile);
     });
   }, []);
 
-  const simulateAnalysis = async (fileId: string) => {
-    // Upload simulation
-    for (let i = 0; i <= 100; i += 10) {
-      await new Promise((resolve) => setTimeout(resolve, 100));
+  const uploadFile = async (uploadedFile: UploadedFile) => {
+    try {
+      if (!isAuthenticated) {
+        setFiles((prev) =>
+          prev.map((file) =>
+            file.id === uploadedFile.id
+              ? { ...file, status: "error", analysisStage: "Please log in" }
+              : file
+          )
+        );
+        return;
+      }
+
+      // Create FormData
+      const formData = new FormData();
+      formData.append("file", uploadedFile.file);
+
       setFiles((prev) =>
         prev.map((file) =>
-          file.id === fileId
+          file.id === uploadedFile.id
+            ? { ...file, analysisStage: "Uploading file..." }
+            : file
+        )
+      );
+
+      // Upload file
+      const response = await fetch("/api/dashboard/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Upload failed");
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        setFiles((prev) =>
+          prev.map((file) =>
+            file.id === uploadedFile.id
+              ? {
+                  ...file,
+                  status: "processing",
+                  progress: 0,
+                  analysisStage: "Analysis started...",
+                  analysisId: result.analysis.id,
+                }
+              : file
+          )
+        );
+
+        // Start polling for analysis results
+        pollAnalysisResults(uploadedFile.id, result.analysis.id);
+      } else {
+        throw new Error("Upload failed");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      setFiles((prev) =>
+        prev.map((file) =>
+          file.id === uploadedFile.id
             ? {
                 ...file,
-                progress: i,
-                analysisStage:
-                  i === 100 ? "Upload complete" : "Uploading file...",
+                status: "error",
+                analysisStage: `Error: ${
+                  error instanceof Error ? error.message : "Unknown error"
+                }`,
               }
             : file
         )
       );
     }
+  };
 
-    // Analysis simulation
-    setFiles((prev) =>
-      prev.map((file) =>
-        file.id === fileId
-          ? {
-              ...file,
-              status: "processing",
-              progress: 0,
-            }
-          : file
-      )
-    );
+  const pollAnalysisResults = async (fileId: string, analysisId: string) => {
+    let attempts = 0;
+    const maxAttempts = 60; // 5 minutes max (5 seconds * 60)
+    let stageIndex = 0;
 
-    let totalProgress = 0;
-    for (const stage of analysisStages) {
-      setFiles((prev) =>
-        prev.map((file) =>
-          file.id === fileId
-            ? {
-                ...file,
-                analysisStage: stage.name,
-              }
-            : file
-        )
-      );
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/analyses/${analysisId}`);
 
-      const stageProgress = 100 / analysisStages.length;
-      for (let i = 0; i <= stageProgress; i += 2) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, stage.duration / (stageProgress / 2))
-        );
-        totalProgress = Math.min(100, totalProgress + 2);
+        if (!response.ok) {
+          throw new Error("Failed to fetch analysis");
+        }
+
+        const data = await response.json();
+        const analysis = data.analysis;
+
+        // Update progress based on status
+        if (analysis.status === "processing") {
+          // Simulate progress through stages
+          const progressPerStage = 100 / analysisStages.length;
+          const currentProgress = Math.min(
+            95,
+            (stageIndex + 1) * progressPerStage
+          );
+
+          setFiles((prev) =>
+            prev.map((file) =>
+              file.id === fileId
+                ? {
+                    ...file,
+                    progress: currentProgress,
+                    analysisStage:
+                      analysisStages[stageIndex]?.name || "Processing...",
+                  }
+                : file
+            )
+          );
+
+          // Move to next stage
+          if (stageIndex < analysisStages.length - 1) {
+            stageIndex++;
+          }
+
+          attempts++;
+          if (attempts < maxAttempts) {
+            setTimeout(poll, 5000); // Poll every 5 seconds
+          } else {
+            // Timeout
+            setFiles((prev) =>
+              prev.map((file) =>
+                file.id === fileId
+                  ? {
+                      ...file,
+                      status: "error",
+                      analysisStage: "Analysis timed out",
+                    }
+                  : file
+              )
+            );
+          }
+        } else if (analysis.status === "completed") {
+          setFiles((prev) =>
+            prev.map((file) =>
+              file.id === fileId
+                ? {
+                    ...file,
+                    status: "completed",
+                    progress: 100,
+                    analysisStage: "Analysis complete",
+                    result: {
+                      isDeepfake: analysis.isDeepfake || false,
+                      confidence: analysis.confidence || 0,
+                      processingTime: analysis.processingTime || 0,
+                      anomalies: analysis.anomalies || [],
+                    },
+                  }
+                : file
+            )
+          );
+        } else if (analysis.status === "failed") {
+          setFiles((prev) =>
+            prev.map((file) =>
+              file.id === fileId
+                ? {
+                    ...file,
+                    status: "error",
+                    analysisStage: "Analysis failed",
+                  }
+                : file
+            )
+          );
+        } else {
+          // Still pending, continue polling
+          attempts++;
+          if (attempts < maxAttempts) {
+            setTimeout(poll, 5000);
+          }
+        }
+      } catch (error) {
+        console.error("Polling error:", error);
         setFiles((prev) =>
           prev.map((file) =>
             file.id === fileId
               ? {
                   ...file,
-                  progress: totalProgress,
+                  status: "error",
+                  analysisStage: "Failed to get results",
                 }
               : file
           )
         );
       }
-    }
+    };
 
-    // Generate mock result
-    const isDeepfake = Math.random() > 0.7;
-    const confidence = Math.random() * 20 + (isDeepfake ? 75 : 80);
-
-    setFiles((prev) =>
-      prev.map((file) =>
-        file.id === fileId
-          ? {
-              ...file,
-              status: "completed",
-              progress: 100,
-              analysisStage: "Analysis complete",
-              result: {
-                isDeepfake,
-                confidence,
-                processingTime: Math.random() * 2 + 1.5,
-                anomalies: isDeepfake
-                  ? [
-                      {
-                        type: "Facial inconsistency",
-                        severity: "high" as const,
-                        description:
-                          "Detected unnatural facial feature transitions",
-                      },
-                      {
-                        type: "Temporal artifacts",
-                        severity: "medium" as const,
-                        description:
-                          "Inconsistent lighting patterns across frames",
-                      },
-                    ]
-                  : [],
-              },
-            }
-          : file
-      )
-    );
+    poll();
   };
 
   const removeFile = (fileId: string) => {
@@ -219,20 +319,33 @@ export default function UploadPage() {
   };
 
   const retryAnalysis = (fileId: string) => {
-    setFiles((prev) =>
-      prev.map((file) =>
-        file.id === fileId
-          ? {
-              ...file,
-              status: "uploading",
-              progress: 0,
-              analysisStage: "Retrying analysis...",
-              result: undefined,
-            }
-          : file
-      )
-    );
-    simulateAnalysis(fileId);
+    const file = files.find((f) => f.id === fileId);
+    if (file) {
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === fileId
+            ? {
+                ...f,
+                status: "uploading",
+                progress: 0,
+                analysisStage: "Retrying upload...",
+                result: undefined,
+              }
+            : f
+        )
+      );
+      uploadFile(file);
+    }
+  };
+
+  const getFileIcon = (file: File) => {
+    if (file.type.startsWith("image/"))
+      return <FileImage className="w-8 h-8 text-muted-foreground" />;
+    if (file.type.startsWith("video/"))
+      return <FileVideo className="w-8 h-8 text-muted-foreground" />;
+    if (file.type.startsWith("audio/"))
+      return <Volume2 className="w-8 h-8 text-muted-foreground" />;
+    return <FileImage className="w-8 h-8 text-muted-foreground" />;
   };
 
   return (
@@ -249,7 +362,7 @@ export default function UploadPage() {
         </div>
         <div className="flex items-center gap-2 text-xs sm:text-sm font-mono text-muted-foreground bg-muted/50 rounded-lg px-3 py-2 border">
           <HardDrive className="w-4 h-4 text-primary" />
-          Supported: JPG, PNG, MP4, MOV • Max: 100MB
+          Supported: JPG, PNG, MP4, MOV, WAV, MP3 • Max: 100MB
         </div>
       </div>
 
@@ -293,9 +406,10 @@ export default function UploadPage() {
                   onClick={() => fileInputRef.current?.click()}
                   className="font-mono px-6 py-3"
                   size="lg"
+                  disabled={!isAuthenticated}
                 >
                   <Upload className="w-4 h-4 mr-2" />
-                  SELECT FILES
+                  {isAuthenticated ? "SELECT FILES" : "LOGIN TO UPLOAD"}
                 </Button>
               </div>
 
@@ -303,7 +417,7 @@ export default function UploadPage() {
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept="image/*,video/*"
+                accept="image/*,video/*,audio/*"
                 onChange={handleFileSelect}
                 className="hidden"
               />
@@ -336,7 +450,7 @@ export default function UploadPage() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <FileVideo className="w-8 h-8 text-muted-foreground" />
+                          getFileIcon(file.file)
                         )}
                       </div>
                     </div>
@@ -427,7 +541,9 @@ export default function UploadPage() {
                               size="sm"
                               className="font-mono text-xs"
                               onClick={() =>
-                                router.push(`/dashboard/results/${file.id}`)
+                                router.push(
+                                  `/dashboard/results/${file.analysisId}`
+                                )
                               }
                             >
                               VIEW DETAILS
@@ -462,8 +578,7 @@ export default function UploadPage() {
                             </span>
                           </div>
                           <p className="text-xs sm:text-sm text-muted-foreground mb-3">
-                            Unable to process this file. Please try again or
-                            contact support.
+                            {file.analysisStage}
                           </p>
                           <Button
                             size="sm"
@@ -504,6 +619,7 @@ export default function UploadPage() {
                   "Use high-resolution images (minimum 512x512 pixels)",
                   "Ensure clear facial visibility in the media",
                   "Videos should be at least 3 seconds long",
+                  "Audio files should be clear with minimal background noise",
                   "Avoid heavily compressed or low-quality files",
                 ].map((practice, index) => (
                   <div
@@ -525,11 +641,15 @@ export default function UploadPage() {
               <div className="space-y-3">
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
                   <FileImage className="w-4 h-4 text-green-500 flex-shrink-0" />
-                  <span>Images: JPG, PNG, WEBP, BMP</span>
+                  <span>Images: JPG, PNG, WEBP, BMP, GIF</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
                   <FileVideo className="w-4 h-4 text-green-500 flex-shrink-0" />
-                  <span>Videos: MP4, MOV, AVI, MKV</span>
+                  <span>Videos: MP4, MOV, AVI, MKV, WEBM</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <Volume2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  <span>Audio: WAV, MP3, FLAC, AAC, OGG</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
                   <HardDrive className="w-4 h-4 text-green-500 flex-shrink-0" />
@@ -537,7 +657,7 @@ export default function UploadPage() {
                 </div>
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
                   <Clock className="w-4 h-4 text-green-500 flex-shrink-0" />
-                  <span>Processing time: 2-5 seconds per file</span>
+                  <span>Processing time: 10-60 seconds per file</span>
                 </div>
               </div>
             </div>
