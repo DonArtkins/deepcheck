@@ -49,6 +49,8 @@ export interface AnalysisResult {
   };
   createdAt: Date;
   updatedAt: Date;
+  completedAt?: Date;
+  error?: string;
 }
 
 // Create a type for data needed to create new analysis (without auto-generated fields)
@@ -120,6 +122,14 @@ export class AnalysisRepository {
     }
   }
 
+  // Generic update method
+  async update(
+    id: string,
+    updateData: Partial<AnalysisResult>
+  ): Promise<AnalysisResult | null> {
+    return this.updateWithResults(id, updateData);
+  }
+
   // Get analysis by ID
   async findById(id: string): Promise<AnalysisResult | null> {
     try {
@@ -132,16 +142,29 @@ export class AnalysisRepository {
     }
   }
 
-  // Get analyses by user ID
+  // Get analyses by user ID - Fixed to match route usage
   async findByUserId(
     userId: string,
     limit = 10,
-    skip = 0
+    skip = 0,
+    queryOptions?: any
   ): Promise<AnalysisResult[]> {
     try {
       const collection = await this.getCollection();
+
+      // Build filter - start with userId and add any additional filters
+      const filter: any = { userId };
+      if (queryOptions) {
+        // Add additional filters from queryOptions (excluding userId since it's already set)
+        Object.keys(queryOptions).forEach((key) => {
+          if (key !== "userId") {
+            filter[key] = queryOptions[key];
+          }
+        });
+      }
+
       const analyses = await collection
-        .find({ userId })
+        .find(filter)
         .sort({ createdAt: -1 })
         .limit(limit)
         .skip(skip)
@@ -151,6 +174,28 @@ export class AnalysisRepository {
         ...analysis,
         id: analysis._id?.toString(),
       }));
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Count analyses by user ID - Added missing method
+  async countByUserId(userId: string, queryOptions?: any): Promise<number> {
+    try {
+      const collection = await this.getCollection();
+
+      // Build filter - start with userId and add any additional filters
+      const filter: any = { userId };
+      if (queryOptions) {
+        // Add additional filters from queryOptions (excluding userId since it's already set)
+        Object.keys(queryOptions).forEach((key) => {
+          if (key !== "userId") {
+            filter[key] = queryOptions[key];
+          }
+        });
+      }
+
+      return await collection.countDocuments(filter);
     } catch (error) {
       throw error;
     }
@@ -176,6 +221,16 @@ export class AnalysisRepository {
     }
   }
 
+  // Count all analyses
+  async count(): Promise<number> {
+    try {
+      const collection = await this.getCollection();
+      return await collection.countDocuments({});
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Delete analysis
   async delete(id: string): Promise<boolean> {
     try {
@@ -186,6 +241,35 @@ export class AnalysisRepository {
     } catch (error) {
       throw error;
     }
+  }
+
+  // Get analyses by status
+  async findByStatus(
+    status: "pending" | "processing" | "completed" | "failed",
+    limit = 10,
+    skip = 0
+  ): Promise<AnalysisResult[]> {
+    try {
+      const collection = await this.getCollection();
+      const analyses = await collection
+        .find({ status } as any)
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .skip(skip)
+        .toArray();
+
+      return analyses.map((analysis) => ({
+        ...analysis,
+        id: analysis._id?.toString(),
+      }));
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Get pending analyses for processing
+  async findPending(limit = 10): Promise<AnalysisResult[]> {
+    return this.findByStatus("pending", limit);
   }
 }
 
