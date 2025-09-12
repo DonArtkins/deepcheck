@@ -121,3 +121,14 @@ export interface TokenPayload {
   iat?: number;
   exp?: number;
 }
+
+// Analysis Data
+export interface CreateAnalysisData {
+  name: string;
+  description?: string;
+  imageUrl: string;
+  cloudinaryPublicId: string;
+  userId: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  uploadedAt: Date;
+}
