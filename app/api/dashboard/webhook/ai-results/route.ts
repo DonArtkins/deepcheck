@@ -6,10 +6,13 @@ export async function POST(request: NextRequest) {
     // Verify API key
     const apiKey = request.headers.get("X-API-Key");
     if (apiKey !== process.env.PYTHON_SERVICE_API_KEY) {
+      console.error("Webhook unauthorized - invalid API key");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
+    console.log("Webhook received:", body);
+
     const {
       analysis_id,
       isDeepfake,
@@ -18,8 +21,11 @@ export async function POST(request: NextRequest) {
       modelUsed,
       anomalies,
       metadata,
-      error: errorMessage, // In case the AI processing failed
-      status: resultStatus, // Allow overriding status (e.g., "failed")
+      features,
+      timestamp,
+      mediaType,
+      error: errorMessage,
+      status: resultStatus,
     } = body;
 
     if (!analysis_id) {
@@ -32,6 +38,7 @@ export async function POST(request: NextRequest) {
     // Check if analysis exists first
     const existingAnalysis = await analysisRepository.findById(analysis_id);
     if (!existingAnalysis) {
+      console.error("Analysis not found:", analysis_id);
       return NextResponse.json(
         { error: "Analysis not found" },
         { status: 404 }
@@ -59,7 +66,7 @@ export async function POST(request: NextRequest) {
       updateData.isDeepfake = isDeepfake;
       updateData.confidence = confidence;
       updateData.processingTime = processingTime;
-      updateData.detectionMethod = modelUsed;
+      updateData.detectionMethod = modelUsed || "AI Analysis";
 
       // Process anomalies with proper typing
       if (anomalies && Array.isArray(anomalies)) {
@@ -74,7 +81,7 @@ export async function POST(request: NextRequest) {
         updateData.anomalies = [];
       }
 
-      // Process analysis metadata
+      // Process analysis metadata - match your Python backend structure
       updateData.analysis = {
         faceRegions: metadata?.faceRegions || 0,
         anomalies: anomalies && Array.isArray(anomalies) ? anomalies.length : 0,
@@ -87,6 +94,14 @@ export async function POST(request: NextRequest) {
         frameAnalysis: Array.isArray(metadata?.frameAnalysis)
           ? metadata.frameAnalysis
           : [],
+        features: features
+          ? {
+              edge_density: features.edge_density || 0,
+              texture_variance: features.texture_variance || 0,
+              suspicious_score: features.suspicious_score || 0,
+              ...features, // Include any other features from your backend
+            }
+          : undefined,
       };
 
       // Process media metadata if provided
@@ -107,17 +122,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    console.log("Updating analysis with:", updateData);
+
     const updatedAnalysis = await analysisRepository.updateWithResults(
       analysis_id,
       updateData
     );
 
     if (!updatedAnalysis) {
+      console.error("Failed to update analysis:", analysis_id);
       return NextResponse.json(
         { error: "Failed to update analysis" },
         { status: 500 }
       );
     }
+
+    console.log("Analysis updated successfully:", updatedAnalysis._id);
 
     return NextResponse.json({
       success: true,
@@ -126,7 +146,7 @@ export async function POST(request: NextRequest) {
           ? "Analysis marked as failed"
           : "Analysis results updated successfully",
       data: {
-        id: updatedAnalysis.id,
+        id: updatedAnalysis._id?.toString(),
         status: updatedAnalysis.status,
         isDeepfake: updatedAnalysis.isDeepfake,
         confidence: updatedAnalysis.confidence,
@@ -137,7 +157,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Webhook error:", error);
     return NextResponse.json(
-      { error: "Failed to process webhook" },
+      {
+        error: "Failed to process webhook",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }
