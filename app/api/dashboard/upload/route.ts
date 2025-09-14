@@ -58,6 +58,27 @@ const ALLOWED_MIME_TYPES = {
   "audio/x-flac": "audio",
 };
 
+// Helper function to sanitize filename for Cloudinary
+function sanitizeFilename(filename: string): string {
+  // Remove file extension for Cloudinary public_id
+  const nameWithoutExt = filename.replace(/\.[^/.]+$/, "");
+
+  // Replace problematic characters with underscores or remove them
+  return (
+    nameWithoutExt
+      // Replace spaces and special characters with underscores
+      .replace(/[\s\(\)\[\]{}'"`,;!@#$%^&*+=<>?/\\|:]/g, "_")
+      // Replace multiple consecutive underscores with single underscore
+      .replace(/_+/g, "_")
+      // Remove leading/trailing underscores
+      .replace(/^_+|_+$/g, "")
+      // Limit length to 100 characters (Cloudinary limit is 255, but let's be safe)
+      .substring(0, 100) ||
+    // Ensure it's not empty
+    `file_${Date.now()}`
+  );
+}
+
 // Helper function to determine media type from MIME type
 function getMediaTypeFromMime(
   mimeType: string
@@ -89,6 +110,23 @@ function getCloudinaryResourceType(
 
 export async function POST(request: NextRequest) {
   try {
+    // Verify Cloudinary configuration
+    if (
+      !process.env.CLOUDINARY_CLOUD_NAME ||
+      !process.env.CLOUDINARY_API_KEY ||
+      !process.env.CLOUDINARY_API_SECRET
+    ) {
+      console.error("Cloudinary environment variables missing:", {
+        CLOUDINARY_CLOUD_NAME: !!process.env.CLOUDINARY_CLOUD_NAME,
+        CLOUDINARY_API_KEY: !!process.env.CLOUDINARY_API_KEY,
+        CLOUDINARY_API_SECRET: !!process.env.CLOUDINARY_API_SECRET,
+      });
+      return NextResponse.json(
+        { success: false, message: "Cloudinary configuration error" },
+        { status: 500 }
+      );
+    }
+
     // Check authentication using your custom JWT system
     const authHeader = request.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -122,8 +160,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Use the original filename with better sanitization
+    const originalFilename = name || file.name;
+    const sanitizedFilename = sanitizeFilename(originalFilename);
+
     console.log(
-      `Processing file: ${file.name}, Type: ${file.type}, Size: ${file.size} bytes`
+      `Processing file: ${originalFilename}, Sanitized: ${sanitizedFilename}, Type: ${file.type}, Size: ${file.size} bytes`
     );
 
     // Determine media type based on file MIME type
@@ -169,16 +211,23 @@ export async function POST(request: NextRequest) {
     const resourceType = getCloudinaryResourceType(mediaType);
     console.log(`Using Cloudinary resource type: ${resourceType}`);
 
+    // Create a unique public_id with timestamp to avoid conflicts
+    const timestamp = Date.now();
+    const publicId = `${sanitizedFilename}_${timestamp}`;
+
     // Upload to Cloudinary with optimized settings for large files
     console.log("Starting Cloudinary upload...");
     const uploadResponse = await new Promise<any>((resolve, reject) => {
       const uploadOptions: any = {
         resource_type: resourceType,
         folder: "deepcheck/uploads",
+        public_id: publicId,
         // Increased timeout for large files
         timeout: 300000, // 5 minutes
         // Add chunk size for large files
         chunk_size: 6000000, // 6MB chunks
+        // Preserve original filename in metadata
+        context: `original_filename=${originalFilename}`,
         // Quality settings based on media type
         ...(mediaType === "video" && {
           quality: "auto:good",
@@ -196,6 +245,14 @@ export async function POST(request: NextRequest) {
         }),
       };
 
+      console.log("Upload options:", {
+        resource_type: uploadOptions.resource_type,
+        folder: uploadOptions.folder,
+        public_id: uploadOptions.public_id,
+        timeout: uploadOptions.timeout,
+        chunk_size: uploadOptions.chunk_size,
+      });
+
       cloudinary.uploader
         .upload_stream(uploadOptions, (error, result) => {
           if (error) {
@@ -212,7 +269,7 @@ export async function POST(request: NextRequest) {
     // Save analysis record to database
     const analysisData = {
       userId: user.id,
-      filename: name || file.name,
+      filename: originalFilename, // Store original filename
       mediaType: mediaType,
       mediaUrl: uploadResponse.secure_url,
       cloudinaryId: uploadResponse.public_id,
@@ -241,7 +298,7 @@ export async function POST(request: NextRequest) {
         analysis_id: analysis._id?.toString(),
         webhook_url: `${process.env.NEXTAUTH_URL}/api/dashboard/webhook/ai-results`,
         file_size: file.size,
-        original_filename: file.name,
+        original_filename: originalFilename,
       };
 
       console.log("Sending to Python backend:", {
