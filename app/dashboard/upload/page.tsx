@@ -197,6 +197,33 @@ export default function UploadPage() {
     return `~${Math.ceil(estimatedSeconds / 3600)}h`;
   };
 
+  // Safe filename display function to handle various filename formats
+  const getDisplayName = (filename: string): string => {
+    // Decode URI components to handle encoded characters
+    try {
+      const decoded = decodeURIComponent(filename);
+      return decoded;
+    } catch {
+      // If decoding fails, return original filename
+      return filename;
+    }
+  };
+
+  // Safe filename truncation for better display
+  const truncateFilename = (
+    filename: string,
+    maxLength: number = 50
+  ): string => {
+    if (filename.length <= maxLength) return filename;
+
+    const extension = filename.match(/\.[^.]+$/)?.[0] || "";
+    const nameWithoutExt = filename.replace(/\.[^.]+$/, "");
+    const truncatedName =
+      nameWithoutExt.substring(0, maxLength - extension.length - 3) + "...";
+
+    return truncatedName + extension;
+  };
+
   const handleFiles = useCallback(
     (newFiles: File[]) => {
       if (!isAuthenticated) {
@@ -212,7 +239,9 @@ export default function UploadPage() {
         if (validation.isValid) {
           validFiles.push(file);
         } else {
-          invalidFiles.push(`${file.name}: ${validation.error}`);
+          invalidFiles.push(
+            `${getDisplayName(file.name)}: ${validation.error}`
+          );
         }
       });
 
@@ -220,6 +249,7 @@ export default function UploadPage() {
       if (invalidFiles.length > 0) {
         console.error("Invalid files:", invalidFiles);
         // You might want to show these errors in a toast or alert
+        alert(`Invalid files:\n${invalidFiles.join("\n")}`);
       }
 
       if (validFiles.length === 0) {
@@ -269,6 +299,7 @@ export default function UploadPage() {
 
       const fileSize = uploadedFile.file.size;
       const estimatedTime = estimateUploadTime(fileSize);
+      const displayName = getDisplayName(uploadedFile.file.name);
 
       // Update status to uploading with file size info
       setFiles((prev) =>
@@ -288,7 +319,7 @@ export default function UploadPage() {
       // Create FormData
       const formData = new FormData();
       formData.append("file", uploadedFile.file);
-      formData.append("name", uploadedFile.file.name);
+      formData.append("name", displayName);
 
       // Simulate upload progress for large files
       let uploadProgress = 5;
@@ -533,9 +564,10 @@ export default function UploadPage() {
     if (!file.analysisId) return;
 
     try {
+      const displayName = getDisplayName(file.file.name);
       // This would generate and download a PDF report
       const reportData = {
-        filename: file.file.name,
+        filename: displayName,
         fileSize: formatFileSize(file.file.size),
         fileType: file.file.type,
         result: file.result,
@@ -550,7 +582,10 @@ export default function UploadPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `deepcheck-report-${file.file.name}.json`;
+      a.download = `deepcheck-report-${displayName.replace(
+        /[^a-zA-Z0-9.-]/g,
+        "_"
+      )}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -683,173 +718,181 @@ export default function UploadPage() {
             ANALYSIS QUEUE
           </h2>
           <div className="grid gap-4">
-            {files.map((file) => (
-              <Card
-                key={file.id}
-                className="hover:shadow-lg transition-shadow duration-200"
-              >
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex flex-col sm:flex-row items-start gap-4">
-                    {/* File Preview */}
-                    <div className="flex-shrink-0">
-                      <div className="w-16 h-16 bg-muted border rounded-lg flex items-center justify-center overflow-hidden">
-                        {file.preview ? (
-                          <img
-                            src={file.preview}
-                            alt={file.file.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          getFileIcon(file.file)
-                        )}
-                      </div>
-                    </div>
+            {files.map((file) => {
+              const displayName = getDisplayName(file.file.name);
+              const truncatedName = truncateFilename(displayName);
 
-                    {/* File Info and Progress */}
-                    <div className="flex-1 min-w-0 w-full">
-                      <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-3 gap-2">
-                        <div className="min-w-0 flex-1">
-                          <h3 className="font-mono font-semibold truncate text-sm sm:text-base">
-                            {file.file.name}
-                          </h3>
-                          <p className="text-xs sm:text-sm text-muted-foreground">
-                            {formatFileSize(file.file.size)} •{" "}
-                            {file.file.type.split("/")[1].toUpperCase()}
-                          </p>
+              return (
+                <Card
+                  key={file.id}
+                  className="hover:shadow-lg transition-shadow duration-200"
+                >
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row items-start gap-4">
+                      {/* File Preview */}
+                      <div className="flex-shrink-0">
+                        <div className="w-16 h-16 bg-muted border rounded-lg flex items-center justify-center overflow-hidden">
+                          {file.preview ? (
+                            <img
+                              src={file.preview}
+                              alt={displayName}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            getFileIcon(file.file)
+                          )}
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeFile(file.id)}
-                          className="hover:bg-destructive/10 hover:text-destructive self-start"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
                       </div>
 
-                      {/* Progress Bar */}
-                      <div className="space-y-2 mb-4">
-                        <div className="flex items-center justify-between text-xs sm:text-sm font-mono">
-                          <span className="flex items-center gap-2">
-                            {file.status === "processing" && (
-                              <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                            )}
-                            {file.status === "uploading" && (
-                              <Upload className="w-3 h-3 text-primary" />
-                            )}
-                            <span className="truncate">
-                              {file.analysisStage}
-                            </span>
-                          </span>
-                          <span className="text-primary font-bold">
-                            {Math.round(file.progress)}%
-                          </span>
+                      {/* File Info and Progress */}
+                      <div className="flex-1 min-w-0 w-full">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-3 gap-2">
+                          <div className="min-w-0 flex-1">
+                            <h3
+                              className="font-mono font-semibold text-sm sm:text-base"
+                              title={displayName} // Show full filename on hover
+                            >
+                              {truncatedName}
+                            </h3>
+                            <p className="text-xs sm:text-sm text-muted-foreground">
+                              {formatFileSize(file.file.size)} •{" "}
+                              {file.file.type.split("/")[1].toUpperCase()}
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFile(file.id)}
+                            className="hover:bg-destructive/10 hover:text-destructive self-start"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
                         </div>
-                        <Progress value={file.progress} className="h-2" />
-                      </div>
 
-                      {/* Results */}
-                      {file.status === "completed" && file.result && (
-                        <div className="p-4 bg-muted/50 border rounded-lg">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
-                            <div className="flex items-center gap-2">
-                              {file.result.isDeepfake ? (
-                                <AlertTriangle className="w-5 h-5 text-destructive" />
-                              ) : (
-                                <CheckCircle className="w-5 h-5 text-green-500" />
+                        {/* Progress Bar */}
+                        <div className="space-y-2 mb-4">
+                          <div className="flex items-center justify-between text-xs sm:text-sm font-mono">
+                            <span className="flex items-center gap-2">
+                              {file.status === "processing" && (
+                                <Loader2 className="w-3 h-3 animate-spin text-primary" />
                               )}
-                              <span className="font-mono font-bold text-sm sm:text-base">
-                                {file.result.isDeepfake
-                                  ? "DEEPFAKE DETECTED"
-                                  : "AUTHENTIC MEDIA"}
+                              {file.status === "uploading" && (
+                                <Upload className="w-3 h-3 text-primary" />
+                              )}
+                              <span className="truncate">
+                                {file.analysisStage}
+                              </span>
+                            </span>
+                            <span className="text-primary font-bold">
+                              {Math.round(file.progress)}%
+                            </span>
+                          </div>
+                          <Progress value={file.progress} className="h-2" />
+                        </div>
+
+                        {/* Results */}
+                        {file.status === "completed" && file.result && (
+                          <div className="p-4 bg-muted/50 border rounded-lg">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+                              <div className="flex items-center gap-2">
+                                {file.result.isDeepfake ? (
+                                  <AlertTriangle className="w-5 h-5 text-destructive" />
+                                ) : (
+                                  <CheckCircle className="w-5 h-5 text-green-500" />
+                                )}
+                                <span className="font-mono font-bold text-sm sm:text-base">
+                                  {file.result.isDeepfake
+                                    ? "DEEPFAKE DETECTED"
+                                    : "AUTHENTIC MEDIA"}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1 text-xs font-mono text-muted-foreground">
+                                <Clock className="w-3 h-3" />
+                                {file.result.processingTime.toFixed(1)}s
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                              <div className="bg-card rounded-lg p-3 border">
+                                <div className="text-xs font-mono text-muted-foreground mb-1">
+                                  CONFIDENCE
+                                </div>
+                                <div className="text-lg sm:text-xl font-mono font-bold">
+                                  {file.result.confidence.toFixed(1)}%
+                                </div>
+                              </div>
+                              <div className="bg-card rounded-lg p-3 border">
+                                <div className="text-xs font-mono text-muted-foreground mb-1">
+                                  ANOMALIES
+                                </div>
+                                <div className="text-lg sm:text-xl font-mono font-bold">
+                                  {file.result.anomalies.length}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                size="sm"
+                                className="font-mono text-xs"
+                                onClick={() =>
+                                  router.push(
+                                    `/dashboard/results/${file.analysisId}`
+                                  )
+                                }
+                              >
+                                VIEW DETAILS
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="font-mono text-xs hover:bg-accent/50"
+                                onClick={() => downloadReport(file)}
+                              >
+                                <Download className="w-3 h-3 mr-1" />
+                                REPORT
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="font-mono text-xs hover:bg-accent/50"
+                                onClick={() => retryAnalysis(file.id)}
+                              >
+                                <RotateCcw className="w-3 h-3 mr-1" />
+                                RETRY
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {file.status === "error" && (
+                          <div className="p-4 bg-destructive/5 border border-destructive/20 rounded-lg">
+                            <div className="flex items-center gap-2 mb-2">
+                              <AlertTriangle className="w-4 h-4 text-destructive" />
+                              <span className="font-mono font-bold text-destructive text-sm">
+                                ANALYSIS FAILED
                               </span>
                             </div>
-                            <div className="flex items-center gap-1 text-xs font-mono text-muted-foreground">
-                              <Clock className="w-3 h-3" />
-                              {file.result.processingTime.toFixed(1)}s
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4 mb-4">
-                            <div className="bg-card rounded-lg p-3 border">
-                              <div className="text-xs font-mono text-muted-foreground mb-1">
-                                CONFIDENCE
-                              </div>
-                              <div className="text-lg sm:text-xl font-mono font-bold">
-                                {file.result.confidence.toFixed(1)}%
-                              </div>
-                            </div>
-                            <div className="bg-card rounded-lg p-3 border">
-                              <div className="text-xs font-mono text-muted-foreground mb-1">
-                                ANOMALIES
-                              </div>
-                              <div className="text-lg sm:text-xl font-mono font-bold">
-                                {file.result.anomalies.length}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-wrap gap-2">
+                            <p className="text-xs sm:text-sm text-muted-foreground mb-3">
+                              {file.analysisStage}
+                            </p>
                             <Button
                               size="sm"
-                              className="font-mono text-xs"
-                              onClick={() =>
-                                router.push(
-                                  `/dashboard/results/${file.analysisId}`
-                                )
-                              }
-                            >
-                              VIEW DETAILS
-                            </Button>
-                            <Button
                               variant="outline"
-                              size="sm"
-                              className="font-mono text-xs hover:bg-accent/50"
-                              onClick={() => downloadReport(file)}
-                            >
-                              <Download className="w-3 h-3 mr-1" />
-                              REPORT
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
                               className="font-mono text-xs hover:bg-accent/50"
                               onClick={() => retryAnalysis(file.id)}
                             >
                               <RotateCcw className="w-3 h-3 mr-1" />
-                              RETRY
+                              RETRY ANALYSIS
                             </Button>
                           </div>
-                        </div>
-                      )}
-
-                      {file.status === "error" && (
-                        <div className="p-4 bg-destructive/5 border border-destructive/20 rounded-lg">
-                          <div className="flex items-center gap-2 mb-2">
-                            <AlertTriangle className="w-4 h-4 text-destructive" />
-                            <span className="font-mono font-bold text-destructive text-sm">
-                              ANALYSIS FAILED
-                            </span>
-                          </div>
-                          <p className="text-xs sm:text-sm text-muted-foreground mb-3">
-                            {file.analysisStage}
-                          </p>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="font-mono text-xs hover:bg-accent/50"
-                            onClick={() => retryAnalysis(file.id)}
-                          >
-                            <RotateCcw className="w-3 h-3 mr-1" />
-                            RETRY ANALYSIS
-                          </Button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       )}
@@ -876,6 +919,7 @@ export default function UploadPage() {
                   "Videos work best with at least 3 seconds of content",
                   "Avoid heavily compressed or low-quality files",
                   "Large files may take longer to process (up to 10 minutes)",
+                  "Special characters in filenames are automatically handled",
                 ].map((practice, index) => (
                   <div
                     key={index}
