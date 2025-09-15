@@ -8,18 +8,12 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
 
-  // Experimental features
-  experimental: {
-    // Note: bodySizeLimit has been removed from Next.js experimental features
-    // You'll need to handle large uploads differently (see comments below)
-  },
-
   // Configure CORS and other headers
   async headers() {
     return [
       {
-        // Apply headers to upload API routes
-        source: "/api/dashboard/upload",
+        // Apply headers to all API routes for better handling
+        source: "/api/:path*",
         headers: [
           {
             key: "Access-Control-Allow-Origin",
@@ -27,46 +21,105 @@ const nextConfig = {
           },
           {
             key: "Access-Control-Allow-Methods",
-            value: "POST, OPTIONS",
+            value: "GET, POST, PUT, DELETE, PATCH, OPTIONS",
           },
           {
             key: "Access-Control-Allow-Headers",
-            value: "Content-Type, Authorization",
+            value: "Content-Type, Authorization, X-API-Key",
           },
           // Increase timeout headers for large uploads
           {
             key: "Keep-Alive",
-            value: "timeout=300",
+            value: "timeout=1800", // 30 minutes
+          },
+          // Add headers for large file handling
+          {
+            key: "Connection",
+            value: "keep-alive",
+          },
+        ],
+      },
+      {
+        // Special headers for upload endpoints
+        source: "/api/dashboard/upload",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-cache, no-store, must-revalidate",
+          },
+          {
+            key: "Pragma",
+            value: "no-cache",
+          },
+          {
+            key: "Expires",
+            value: "0",
           },
         ],
       },
     ];
   },
 
-  // Webpack configuration for handling large files
+  // Webpack configuration for handling large files and timeouts
   webpack: (config, { isServer }) => {
     // Increase the maximum asset size for large files
     config.performance = {
       ...config.performance,
-      maxAssetSize: 3 * 1024 * 1024 * 1024, // 3GB
-      maxEntrypointSize: 3 * 1024 * 1024 * 1024, // 3GB
+      maxAssetSize: 5 * 1024 * 1024 * 1024, // 5GB
+      maxEntrypointSize: 5 * 1024 * 1024 * 1024, // 5GB
+      hints: false, // Disable performance hints for large files
+    };
+
+    // Add optimizations for large file handling
+    config.optimization = {
+      ...config.optimization,
+      splitChunks: {
+        ...config.optimization?.splitChunks,
+        maxAsyncRequests: 30,
+        maxInitialRequests: 30,
+        cacheGroups: {
+          ...config.optimization?.splitChunks?.cacheGroups,
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: "vendors",
+            priority: 10,
+            chunks: "all",
+            maxSize: 5000000, // 5MB chunks
+          },
+        },
+      },
     };
 
     return config;
   },
 
-  // Images configuration
+  // Images configuration with better handling
   images: {
-    domains: ["res.cloudinary.com"],
+    domains: ["res.cloudinary.com", "cloudinary.com"],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    unoptimized: true,
+    unoptimized: true, // Better for Cloudinary-served images
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
-  // Compression settings
+  // Server configuration for better handling of large requests
+  serverRuntimeConfig: {
+    // Increase timeouts
+    maxDuration: 1800, // 30 minutes for serverless functions (if supported)
+  },
+
+  // Compression settings optimized for large files
   compress: true,
 
-  // Note: swcMinify is now enabled by default in Next.js 13+ and the option has been removed
+  // Experimental features for better performance
+  experimental: {
+    // Enable helpful features for large file handling
+    largePageDataBytes: 256 * 1000, // 256KB (increased from default)
+    // Optimize for better performance
+    optimizeCss: true,
+    scrollRestoration: true,
+  },
 
   // Optional: Configure redirects
   async redirects() {
@@ -74,6 +127,20 @@ const nextConfig = {
       // Add any redirects you might need
     ];
   },
+
+  // Add rewrites for better API handling
+  async rewrites() {
+    return [
+      // You can add API rewrites here if needed
+    ];
+  },
+
+  // Output configuration
+  output: process.env.NODE_ENV === "production" ? "standalone" : undefined,
+
+  // Power optimizations
+  poweredByHeader: false,
+  reactStrictMode: true,
 };
 
 export default nextConfig;
