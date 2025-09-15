@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "app/api/dashboard/upload/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/dashboard/webhook/ai-results/route.ts": {
+      "maxDuration": 60
+    }
+  },
+  "limits": {
+    "duration": 300
+  }
+}
